@@ -1,15 +1,17 @@
 :root {
   color-scheme: light;
-  --bg: #f4ead7;
-  --bg-soft: #fff8eb;
-  --fg: #1f2a30;
-  --muted: #5f6b72;
-  --card: rgba(255, 250, 242, 0.9);
-  --line: rgba(31, 42, 48, 0.12);
-  --accent: #c97b2b;
-  --accent-strong: #9a5514;
-  --sky: #8ecae6;
-  --shadow: 0 24px 70px rgba(64, 45, 15, 0.12);
+  --bg: #fff1c8;
+  --bg-soft: #fff8e3;
+  --fg: #13232d;
+  --muted: #4f5e68;
+  --card: rgba(255, 252, 243, 0.72);
+  --line: rgba(19, 35, 45, 0.12);
+  --accent: #ff7a1a;
+  --accent-strong: #e24900;
+  --sun: #ffd400;
+  --sky: #35a9e0;
+  --cactus: #278b5b;
+  --shadow: 0 32px 88px rgba(93, 53, 10, 0.22);
 }
 
 * {
@@ -25,16 +27,57 @@ body {
   margin: 0;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--fg);
+  position: relative;
+  overflow-x: hidden;
   background:
-    radial-gradient(circle at 20% 0%, rgba(142, 202, 230, 0.35), transparent 30%),
-    radial-gradient(circle at 82% 12%, rgba(201, 123, 43, 0.16), transparent 26%),
-    linear-gradient(180deg, #f8efd9 0%, var(--bg) 42%, #efe0c1 100%);
+    radial-gradient(circle at 68% 0%, rgba(53, 169, 224, 0.80), transparent 24%),
+    radial-gradient(circle at 18% 14%, rgba(255, 212, 0, 0.28), transparent 18%),
+    radial-gradient(circle at 82% 74%, rgba(39, 139, 91, 0.18), transparent 16%),
+    radial-gradient(circle at 12% 88%, rgba(228, 73, 0, 0.14), transparent 14%),
+    linear-gradient(180deg, #d8f2ff 0%, #b9e3ff 18%, #fff2c3 44%, #ffd96d 68%, #f2b03a 100%);
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: auto;
+  pointer-events: none;
+  z-index: -1;
+}
+
+body::before {
+  left: -12vw;
+  top: -10vw;
+  width: 58vw;
+  height: 28vw;
+  background:
+    radial-gradient(closest-side at 15% 35%, rgba(255, 255, 255, 0.62), transparent 72%),
+    radial-gradient(closest-side at 42% 42%, rgba(53, 169, 224, 0.54), transparent 72%),
+    radial-gradient(closest-side at 72% 38%, rgba(255, 212, 0, 0.40), transparent 70%);
+  filter: blur(24px) saturate(1.3);
+  opacity: 0.95;
+}
+
+body::after {
+  left: -10vw;
+  bottom: -18vw;
+  width: 64vw;
+  height: 36vw;
+  background:
+    radial-gradient(closest-side at 18% 58%, rgba(255, 212, 0, 0.56), transparent 72%),
+    radial-gradient(closest-side at 34% 72%, rgba(242, 176, 58, 0.70), transparent 76%),
+    radial-gradient(closest-side at 54% 52%, rgba(255, 181, 78, 0.80), transparent 74%),
+    radial-gradient(closest-side at 74% 70%, rgba(39, 139, 91, 0.22), transparent 72%),
+    radial-gradient(closest-side at 86% 45%, rgba(19, 35, 45, 0.08), transparent 72%);
+  filter: blur(38px) saturate(1.12);
+  opacity: 0.95;
 }
 
 a {
   color: var(--accent-strong);
-  text-decoration-thickness: 0.08em;
-  text-underline-offset: 0.16em;
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.18em;
 }
 
 a:hover {
@@ -44,15 +87,17 @@ a:hover {
 .page {
   width: min(1080px, calc(100vw - 40px));
   margin: 0 auto;
-  padding: 44px 0 56px;
+  padding: 36px 0 56px;
 }
 
 .shell {
   padding: 44px;
-  border: 1px solid var(--line);
-  border-radius: 30px;
-  background: var(--card);
-  backdrop-filter: blur(12px);
+  border: 1px solid rgba(19, 35, 45, 0.16);
+  border-radius: 36px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 245, 0.88), rgba(255, 247, 226, 0.72)),
+    var(--card);
+  backdrop-filter: blur(10px);
   box-shadow: var(--shadow);
 }
 
@@ -61,11 +106,11 @@ a:hover {
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(19, 35, 45, 0.14);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.55);
-  color: var(--muted);
-  font-size: 12px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--fg);
+  font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -75,8 +120,8 @@ a:hover {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: var(--sky);
-  box-shadow: 0 0 0 4px rgba(142, 202, 230, 0.18);
+  background: var(--sun);
+  box-shadow: 0 0 0 4px rgba(255, 212, 0, 0.24);
 }
 
 h1 {
@@ -84,6 +129,7 @@ h1 {
   font-size: clamp(2.2rem, 4.8vw, 4.8rem);
   line-height: 0.98;
   letter-spacing: -0.05em;
+  text-wrap: balance;
 }
 
 h2 {
@@ -116,22 +162,24 @@ p {
 
 .panel {
   padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(19, 35, 45, 0.12);
+  border-radius: 26px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 246, 219, 0.72));
+  box-shadow: 0 18px 40px rgba(88, 56, 12, 0.10);
 }
 
 .codeblock {
   margin: 14px 0 0;
   padding: 18px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(19, 35, 45, 0.14);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(20, 35, 46, 0.96), rgba(18, 28, 36, 0.94));
   overflow: auto;
 }
 
 .codeblock code {
-  color: var(--fg);
+  color: #ffe8a5;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.92rem;
   line-height: 1.6;
@@ -157,27 +205,29 @@ p {
   gap: 10px;
   padding: 12px 18px;
   border-radius: 999px;
-  border: 1px solid rgba(31, 42, 48, 0.12);
-  background: var(--fg);
+  border: 1px solid rgba(19, 35, 45, 0.14);
+  background: linear-gradient(180deg, #162933 0%, #0f1d25 100%);
   color: #fff;
   text-decoration: none;
+  box-shadow: 0 14px 24px rgba(15, 29, 37, 0.20);
 }
 
 .button.secondary {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 244, 200, 0.92);
   color: var(--fg);
 }
 
 .meta {
   margin-top: 28px;
   padding-top: 18px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid rgba(19, 35, 45, 0.12);
   color: var(--muted);
   font-size: 0.95rem;
 }
 
 .accent {
   color: var(--accent);
+  font-weight: 700;
 }
 
 ul {
@@ -193,9 +243,9 @@ li + li {
 
 .inline-kbd {
   padding: 2px 8px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(19, 35, 45, 0.14);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.84);
   color: var(--fg);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.92em;
