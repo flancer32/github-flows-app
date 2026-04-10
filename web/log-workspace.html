@@ -44,9 +44,12 @@
         <div class="panel stack-top">
           <h2>Security requirements</h2>
           <p>
-            Do not leave the linked log directory publicly readable. Protect it with either IP-based
-            access control or a password challenge. If the logs may contain operational data, use both
-            where possible.
+            Do not leave the linked log directory publicly readable. The goal is to make it easy to
+            follow gateway activity remotely in a browser, but only with controlled access.
+          </p>
+          <p>
+            If the logs may contain operational data, protect the directory before you expose it to the
+            web. Two common options are IP-based access control and password protection.
           </p>
           <p>
             When access control is configured in `web/`, confirm that direct requests to the linked
@@ -57,10 +60,11 @@
 
         <div class="grid cols-2 stack-top">
           <section class="panel">
-            <h2>Apache configuration example</h2>
+            <h2>Indexing example</h2>
             <p>
-              A straightforward approach is to expose only the log subtree with a dedicated alias and
-              then lock that location down with either IP rules or password protection.
+              Enable directory listing if you want to inspect the log workspace directly in the
+              browser. This is useful for quick remote checks of gateway progress, but it should always
+              be paired with access control.
             </p>
 <pre class="codeblock"><code>&lt;VirtualHost *:80&gt;
   ServerName example.local
@@ -69,9 +73,9 @@
   Alias /logs /var/www/github-flows-app/web/log
 
   &lt;Directory "/var/www/github-flows-app/web/log"&gt;
-    Options -Indexes
+    Options +Indexes
     AllowOverride All
-    Require ip 127.0.0.1 192.168.1.0/24
+    DirectoryIndex index.html
   &lt;/Directory&gt;
 
   ErrorLog ${APACHE_LOG_DIR}/github-flows-error.log
@@ -80,12 +84,12 @@
           </section>
 
           <section class="panel">
-            <h2>.htaccess example</h2>
+            <h2>IP restriction example</h2>
             <p>
-              If you prefer per-directory control, keep the protection in the linked log directory.
-              Replace the access rule with `Require valid-user` if you are using HTTP Basic Auth.
+              This version allows browsing the log directory only from selected networks or hosts.
+              Use it when browser access should be limited to trusted addresses.
             </p>
-<pre class="codeblock"><code>Options -Indexes
+<pre class="codeblock"><code>Options +Indexes
 DirectoryIndex index.html
 
 &lt;IfModule mod_authz_core.c&gt;
@@ -98,6 +102,36 @@ DirectoryIndex index.html
   Allow from 127.0.0.1
   Allow from 192.168.1.0/24
 &lt;/IfModule&gt;</code></pre>
+          </section>
+        </div>
+
+        <div class="grid cols-2 stack-top">
+          <section class="panel">
+            <h2>Password protection example</h2>
+            <p>
+              If remote access must work from arbitrary IPs, protect the log directory with HTTP Basic
+              Auth instead. This keeps the browser workflow simple while still requiring credentials.
+            </p>
+<pre class="codeblock"><code>Options +Indexes
+DirectoryIndex index.html
+
+AuthType Basic
+AuthName "Gateway Logs"
+AuthUserFile /var/www/.htpasswd
+Require valid-user</code></pre>
+          </section>
+
+          <section class="panel">
+            <h2>Operational note</h2>
+            <p>
+              Keep directory indexing enabled, and choose the access control model that matches your
+              deployment. In practice, that means browser users can inspect the log listing, but only
+              from approved IP ranges or after authentication.
+            </p>
+            <p>
+              If you serve logs from a linked directory, test the exact URL that browsers will open and
+              make sure unauthenticated access returns a denial rather than a directory listing.
+            </p>
           </section>
         </div>
 
