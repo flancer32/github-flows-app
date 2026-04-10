@@ -1,0 +1,23 @@
+FROM node:20-bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    git \
+    gh \
+    ca-certificates \
+    openssh-client \
+  && npm install -g @openai/codex \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+ARG UID=1000
+ARG GID=1000
+
+RUN groupmod -g $GID node \
+ && usermod -u $UID -g $GID node
+
+WORKDIR /workspace
+
+USER node

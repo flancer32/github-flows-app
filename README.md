@@ -126,3 +126,13 @@ sudo logrotate -d /etc/logrotate.d/github-flows-app
 sudo logrotate -f /etc/logrotate.d/github-flows-app
 ```
 
+## Docker
+
+```bash
+docker build \
+  -f etc/docker/Dockerfile.codex \
+  --build-arg UID=$(id -u) \
+  --build-arg GID=$(id -g) \
+  -t codex-agent \
+  .
+```
