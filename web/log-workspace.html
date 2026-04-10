@@ -55,6 +55,52 @@
           </p>
         </div>
 
+        <div class="grid cols-2 stack-top">
+          <section class="panel">
+            <h2>Apache configuration example</h2>
+            <p>
+              A straightforward approach is to expose only the log subtree with a dedicated alias and
+              then lock that location down with either IP rules or password protection.
+            </p>
+<pre class="codeblock"><code>&lt;VirtualHost *:80&gt;
+  ServerName example.local
+  DocumentRoot /var/www/github-flows-app/web
+
+  Alias /logs /var/www/github-flows-app/web/log
+
+  &lt;Directory "/var/www/github-flows-app/web/log"&gt;
+    Options -Indexes
+    AllowOverride All
+    Require ip 127.0.0.1 192.168.1.0/24
+  &lt;/Directory&gt;
+
+  ErrorLog ${APACHE_LOG_DIR}/github-flows-error.log
+  CustomLog ${APACHE_LOG_DIR}/github-flows-access.log combined
+&lt;/VirtualHost&gt;</code></pre>
+          </section>
+
+          <section class="panel">
+            <h2>.htaccess example</h2>
+            <p>
+              If you prefer per-directory control, keep the protection in the linked log directory.
+              Replace the access rule with `Require valid-user` if you are using HTTP Basic Auth.
+            </p>
+<pre class="codeblock"><code>Options -Indexes
+DirectoryIndex index.html
+
+&lt;IfModule mod_authz_core.c&gt;
+  Require ip 127.0.0.1 192.168.1.0/24
+&lt;/IfModule&gt;
+
+&lt;IfModule !mod_authz_core.c&gt;
+  Order deny,allow
+  Deny from all
+  Allow from 127.0.0.1
+  Allow from 192.168.1.0/24
+&lt;/IfModule&gt;</code></pre>
+          </section>
+        </div>
+
         <div class="panel stack-top">
           <h2>Notes</h2>
           <p>
