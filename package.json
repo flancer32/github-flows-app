@@ -1,0 +1,62 @@
+{
+  "name": "@flancer32/github-flows-app",
+  "version": "0.1.0",
+  "description": "Application host for event-driven workflows based on GitHub repository activity.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "packageManager": "npm@10",
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "github",
+    "workflow",
+    "event-driven",
+    "agent",
+    "teqfw",
+    "nodejs",
+    "application"
+  ],
+  "author": [
+    {
+      "name": "Alex Gusev",
+      "email": "alex@flancer64.com",
+      "url": "https://github.com/flancer64"
+    },
+    {
+      "name": "Victor Gusev",
+      "email": "viktor@nmmlm.com",
+      "url": "https://github.com/viktor-gusev"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flancer32/github-flows-app.git"
+  },
+  "homepage": "https://github.com/flancer32/github-flows-app",
+  "bugs": {
+    "url": "https://github.com/flancer32/github-flows-app/issues"
+  },
+  "teqfw": {
+    "namespaces": [
+      {
+        "prefix": "Github_Flows_App_",
+        "path": "./src",
+        "ext": ".mjs"
+      }
+    ]
+  },
+  "types": "types.d.ts",
+  "dependencies": {
+    "@teqfw/github-flows": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "*"
+  },
+  "scripts": {
+    "start": "node ./bin/cli.mjs",
+    "test:unit": "find test/unit -name '*.test.mjs' -print0 | xargs -0 node --test",
+    "test:integration": "find test/integration -name '*.test.mjs' -print0 | xargs -0 node --test",
+    "test": "npm run test:unit && npm run test:integration"
+  }
+}
