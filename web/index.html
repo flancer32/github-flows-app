@@ -4,90 +4,23 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GitHub Flows App</title>
-    <style>
-      :root {
-        color-scheme: light;
-        --bg: #f5f1e8;
-        --fg: #172033;
-        --muted: #5d6472;
-        --card: rgba(255, 255, 255, 0.74);
-        --line: rgba(23, 32, 51, 0.12);
-        --accent: #0b5fff;
-      }
-
-      * { box-sizing: border-box; }
-      html, body { height: 100%; }
-      body {
-        margin: 0;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        color: var(--fg);
-        background:
-          radial-gradient(circle at top left, rgba(11, 95, 255, 0.16), transparent 35%),
-          radial-gradient(circle at bottom right, rgba(255, 165, 0, 0.14), transparent 32%),
-          var(--bg);
-        display: grid;
-        place-items: center;
-      }
-
-      main {
-        width: min(720px, calc(100vw - 32px));
-        padding: 40px;
-        border: 1px solid var(--line);
-        border-radius: 28px;
-        background: var(--card);
-        backdrop-filter: blur(12px);
-        box-shadow: 0 20px 60px rgba(23, 32, 51, 0.10);
-      }
-
-      .eyebrow {
-        display: inline-block;
-        padding: 8px 12px;
-        border-radius: 999px;
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.55);
-        color: var(--muted);
-        font-size: 12px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      h1 {
-        margin: 18px 0 12px;
-        font-size: clamp(2rem, 5vw, 3.8rem);
-        line-height: 1.02;
-        letter-spacing: -0.04em;
-      }
-
-      p {
-        margin: 0;
-        max-width: 56ch;
-        font-size: 1.05rem;
-        line-height: 1.6;
-        color: var(--muted);
-      }
-
-      .meta {
-        margin-top: 28px;
-        padding-top: 18px;
-        border-top: 1px solid var(--line);
-        font-size: 0.95rem;
-        color: var(--muted);
-      }
-
-      .accent {
-        color: var(--accent);
-      }
-    </style>
+    <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
-    <main>
-      <span class="eyebrow">Static placeholder</span>
-      <h1>GitHub Flows App</h1>
-      <p>
-        The server is running and serving this page from <span class="accent">./web/</span>.
-        This is a placeholder shell for the application UI.
-      </p>
-      <div class="meta">If you can read this, static delivery is working.</div>
+    <main class="page">
+      <section class="shell">
+        <span class="eyebrow">Static placeholder</span>
+        <h1>GitHub Flows App</h1>
+        <p class="lede">
+          The server is running and serving this page from <span class="accent">./web/</span>.
+          This is a placeholder shell for the application UI.
+        </p>
+        <div class="actions">
+          <a class="button" href="/log-workspace.html">How to publish logs</a>
+          <a class="button secondary" href="/404.html">404 example</a>
+        </div>
+        <div class="meta">If you can read this, static delivery is working.</div>
+      </section>
     </main>
   </body>
 </html>

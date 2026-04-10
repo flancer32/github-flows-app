@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Publishing a workspace log directory</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="page">
+      <section class="shell">
+        <span class="eyebrow">Workspace logs</span>
+        <h1>Publishing a log workspace through `web/`</h1>
+        <p class="lede">
+          You can expose the product workspace under the static web root by pointing `WORKSPACE_ROOT`
+          to a directory inside or beneath `web/`. For example, your current setup uses
+          `WORKSPACE_ROOT=./var/work`.
+        </p>
+
+        <div class="grid cols-2 stack-top">
+          <section class="panel">
+            <h2>Recommended layout</h2>
+            <p>
+              Keep the generated or writable log directory outside the versioned static files, then
+              link only the log subtree into `web/`.
+            </p>
+            <p>
+              A common pattern is to create a workspace directory such as `./var/work` and expose a
+              selected log folder with a symbolic link under `web/`.
+            </p>
+          </section>
+
+          <section class="panel">
+            <h2>Practical steps</h2>
+            <ul>
+              <li>Create the workspace directory, for example `mkdir -p ./var/work`.</li>
+              <li>Point the application to it with `WORKSPACE_ROOT=./var/work` in `.env`.</li>
+              <li>Link the required log directory into `web/`, for example `ln -s ../../var/work/log web/log`.</li>
+              <li>Verify that the link resolves correctly through the static server.</li>
+            </ul>
+          </section>
+        </div>
+
+        <div class="panel stack-top">
+          <h2>Security requirements</h2>
+          <p>
+            Do not leave the linked log directory publicly readable. Protect it with either IP-based
+            access control or a password challenge. If the logs may contain operational data, use both
+            where possible.
+          </p>
+          <p>
+            When access control is configured in `web/`, confirm that direct requests to the linked
+            directory are rejected for unauthorized clients and that the protection applies before the
+            link is followed.
+          </p>
+        </div>
+
+        <div class="panel stack-top">
+          <h2>Notes</h2>
+          <p>
+            This document describes the static publication pattern only. It does not replace the
+            runtime configuration for the application itself.
+          </p>
+        </div>
+
+        <div class="actions">
+          <a class="button" href="/">Back to home</a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
