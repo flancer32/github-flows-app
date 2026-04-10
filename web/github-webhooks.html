@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Connecting GitHub WebHooks to GitHub Flows</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="page">
+      <section class="shell">
+        <span class="eyebrow">GitHub WebHooks</span>
+        <h1>Connect GitHub WebHooks</h1>
+        <p class="lede">
+          Point GitHub to this application at the webhook path below.
+        </p>
+
+        <div class="grid cols-2 stack-top">
+          <section class="panel">
+            <h2>1. WebHook URL</h2>
+            <p class="lede">
+              <a id="webhook-url" href="https://example.com/webhooks/github">https://example.com/webhooks/github</a>
+            </p>
+            <p>Use the current application domain and append `/webhooks/github`.</p>
+          </section>
+
+          <section class="panel">
+            <h2>2. Delivery format</h2>
+            <ul>
+              <li>Set content type to `application/json`.</li>
+              <li>Set the payload URL to the URL shown on this page.</li>
+            </ul>
+          </section>
+        </div>
+
+        <div class="grid cols-2 stack-top">
+          <section class="panel">
+            <h2>3. Secret</h2>
+            <p>
+              Put the webhook secret from GitHub into `WEBHOOK_SECRET` before starting the app.
+            </p>
+            <ul>
+              <li>The value must match exactly on both sides.</li>
+              <li>Keep SSL verification enabled.</li>
+            </ul>
+          </section>
+
+          <section class="panel">
+            <h2>4. Done</h2>
+            <p>
+              Push a test event and confirm the application receives it.
+            </p>
+          </section>
+        </div>
+
+        <div class="panel stack-top">
+          <h2>Checklist</h2>
+          <ul>
+            <li>Confirm the URL uses the current domain and `/webhooks/github`.</li>
+            <li>Confirm content type is `application/json`.</li>
+            <li>Confirm the webhook secret matches on both sides.</li>
+            <li>Confirm a test delivery appears in the application.</li>
+          </ul>
+        </div>
+
+        <div class="actions">
+          <a class="button" href="/">Back to home</a>
+          <a class="button secondary" href="/log-workspace.html">Log workspace guide</a>
+        </div>
+      </section>
+    </main>
+    <script>
+      const target = document.getElementById("webhook-url");
+      if (target) {
+        const url = new URL("/webhooks/github", window.location.origin);
+        target.href = url.href;
+        target.textContent = url.href;
+      }
+    </script>
+  </body>
+</html>
