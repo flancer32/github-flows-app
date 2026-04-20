@@ -48,7 +48,7 @@
   },
   "types": "types.d.ts",
   "dependencies": {
-    "@teqfw/github-flows": "^0.1.0"
+    "@teqfw/github-flows": "<1.0.0"
   },
   "devDependencies": {
     "@types/node": "*"
