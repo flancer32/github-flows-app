@@ -19,6 +19,8 @@ WORKSPACE_ROOT=./var/work
 WEBHOOK_SECRET=replace-with-shared-secret
 ```
 
+The application redacts `webhookSecret` in bootstrap logs.
+
 Install dependencies and start the application:
 
 ```bash

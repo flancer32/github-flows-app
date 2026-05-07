@@ -89,3 +89,69 @@ test("App exposes run and stop methods", async () => {
   assert.equal(exitCode, 0);
   assert.deepEqual(calls.at(-1), ["stop"]);
 });
+
+test("App redacts webhookSecret in bootstrap runtime trace", async () => {
+  const calls = [];
+  const infoCalls = [];
+  const originalInfo = console.info;
+  console.info = (...args) => {
+    infoCalls.push(args);
+  };
+
+  try {
+    const app = new Github_Flows_App_Bootstrap({
+      appCfgRuntimeLoader: {
+        load() {
+          return {
+            httpHost: "127.0.0.1",
+            httpPort: 3000,
+            workspaceRoot: "/tmp/project/var/work",
+            webhookSecret: "replace-with-shared-secret",
+          };
+        },
+      },
+      appEventAttributeProviderHolder: {
+        set() {
+          calls.push(["setProvider"]);
+        },
+      },
+      appEventAttributeProvider: {},
+      appWebServer: {
+        async start() {
+          calls.push(["start"]);
+        },
+        async stop() {
+          calls.push(["stop"]);
+        },
+      },
+      appWebPipelineEngine: {
+        addHandler() {},
+      },
+      appWebStaticHandler: {
+        async init() {},
+      },
+      appWebSourceFactory: {
+        create() {
+          return {};
+        },
+      },
+    });
+
+    const runPromise = app.run({ projectRoot: "/tmp/project", cliArgs: [] });
+    await new Promise(resolve => setImmediate(resolve));
+    await app.stop();
+    await runPromise;
+  } finally {
+    console.info = originalInfo;
+  }
+
+  const runtimeTrace = infoCalls.find(args => args[0] === "[bootstrap] runtime:configured");
+  assert.ok(runtimeTrace);
+  assert.deepEqual(runtimeTrace[1], {
+    httpHost: "127.0.0.1",
+    httpPort: 3000,
+    workspaceRoot: "/tmp/project/var/work",
+    webhookSecret: "[redacted]",
+  });
+  assert.ok(infoCalls.every(args => !JSON.stringify(args).includes("replace-with-shared-secret")));
+});

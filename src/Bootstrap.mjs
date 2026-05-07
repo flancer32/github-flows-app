@@ -45,6 +45,17 @@ export default class Github_Flows_App_Bootstrap {
       console.info(`[bootstrap] ${message}`, data);
     };
 
+    /**
+     * Redact sensitive runtime configuration fields before logging.
+     *
+     * @param {object} runtimeParams
+     * @returns {object}
+     */
+    const redactRuntimeParams = runtimeParams => ({
+      ...runtimeParams,
+      webhookSecret: runtimeParams.webhookSecret === undefined ? undefined : "[redacted]",
+    });
+
     const completeRun = (code = 0) => {
       if (resolveRun) {
         const nextResolve = resolveRun;
@@ -66,7 +77,7 @@ export default class Github_Flows_App_Bootstrap {
       const runtimeParams = await appCfgRuntimeLoader.load({ projectRoot });
 
       trace("run:start", { projectRoot, webRoot });
-      trace("runtime:configured", runtimeParams);
+      trace("runtime:configured", redactRuntimeParams(runtimeParams));
 
       appEventAttributeProviderHolder.set(appEventAttributeProvider);
       trace("event-attribute-provider:registered", {
