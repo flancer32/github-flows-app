@@ -72,13 +72,11 @@ export default class Github_Flows_App_Config_Loader {
         httpHost: "127.0.0.1",
         httpPort: 3000,
         workspaceRoot: `${projectRoot}/var/work`,
-        runtimeImage: "codex-agent",
         webhookSecret: "replace-with-shared-secret",
       };
       if (env.HOST !== undefined) cfg.httpHost = env.HOST;
       if (env.PORT !== undefined) cfg.httpPort = Number.parseInt(env.PORT, 10);
       if (env.WORKSPACE_ROOT !== undefined) cfg.workspaceRoot = env.WORKSPACE_ROOT;
-      if (env.RUNTIME_IMAGE !== undefined) cfg.runtimeImage = env.RUNTIME_IMAGE;
       if (env.WEBHOOK_SECRET !== undefined) cfg.webhookSecret = env.WEBHOOK_SECRET;
       appCfgRuntimeFactory.configure(cfg);
       appCfgRuntimeFactory.freeze();

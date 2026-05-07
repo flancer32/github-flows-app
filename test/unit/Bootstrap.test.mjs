@@ -19,7 +19,6 @@ test("App exposes run and stop methods", async () => {
           httpHost: "127.0.0.1",
           httpPort: 3000,
           workspaceRoot: `${projectRoot}/var/work`,
-          runtimeImage: "codex-agent",
           webhookSecret: "replace-with-shared-secret",
         };
       },

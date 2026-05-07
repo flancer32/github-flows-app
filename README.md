@@ -16,7 +16,6 @@ Create a `.env` file from the provided template and adjust the values for your e
 HOST=127.0.0.1
 PORT=5020
 WORKSPACE_ROOT=./var/work
-RUNTIME_IMAGE=codex-agent
 WEBHOOK_SECRET=replace-with-shared-secret
 ```
 

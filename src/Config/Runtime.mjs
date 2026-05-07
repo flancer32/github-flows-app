@@ -15,9 +15,6 @@ export class Data {
   workspaceRoot;
 
   /** @type {string|undefined} */
-  runtimeImage;
-
-  /** @type {string|undefined} */
   webhookSecret;
 }
 
@@ -34,13 +31,11 @@ export class Factory {
       if (params.httpHost !== undefined && cfg.httpHost === "127.0.0.1") cfg.httpHost = params.httpHost;
       if (params.httpPort !== undefined && cfg.httpPort === 3000) cfg.httpPort = params.httpPort;
       if (params.workspaceRoot !== undefined && cfg.workspaceRoot === undefined) cfg.workspaceRoot = params.workspaceRoot;
-      if (params.runtimeImage !== undefined && cfg.runtimeImage === undefined) cfg.runtimeImage = params.runtimeImage;
       if (params.webhookSecret !== undefined && cfg.webhookSecret === undefined) cfg.webhookSecret = params.webhookSecret;
     };
     this.freeze = function () {
       if (frozen) return;
       if (cfg.workspaceRoot === undefined) throw new Error("Missing required runtime configuration field: workspaceRoot");
-      if (cfg.runtimeImage === undefined) throw new Error("Missing required runtime configuration field: runtimeImage");
       if (cfg.webhookSecret === undefined) throw new Error("Missing required runtime configuration field: webhookSecret");
       frozen = true;
       Object.freeze(cfg);
