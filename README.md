@@ -10,7 +10,7 @@ Clone the repository and enter the project directory:
 git clone https://github.com/flancer32/github-flows-app.git .
 ```
 
-Create a `.env` file with the application settings:
+Create a `.env` file from the provided template and adjust the values for your environment:
 
 ```env
 HOST=127.0.0.1
