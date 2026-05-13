@@ -5,7 +5,11 @@ import Github_Flows_App_Bootstrap from "../../src/Bootstrap.mjs";
 
 test("App exposes run and stop methods", async () => {
   const calls = [];
-  const attributeProvider = {};
+  const attributeProvider = {
+    async getAttributes() {
+      throw new Error("Provider must not be evaluated during bootstrap.");
+    },
+  };
   const staticHandler = {
     async init(params) {
       calls.push(["init", params]);
