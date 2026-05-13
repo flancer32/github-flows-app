@@ -36,6 +36,25 @@ export default class Github_Flows_App_Event_Attribute_Provider {
     });
 
     /**
+     * Derive issue label event attributes from the current webhook payload.
+     *
+     * @param {*} payload
+     * @returns {object}
+     */
+    const buildIssueLabelFlags = payload => {
+      if (!payload || typeof payload !== "object" || typeof payload.label?.name !== "string") {
+        return {};
+      }
+      if (payload.action === "labeled") {
+        return { issueLabelAdded: payload.label.name };
+      }
+      if (payload.action === "unlabeled") {
+        return { issueLabelRemoved: payload.label.name };
+      }
+      return {};
+    };
+
+    /**
      * Resolve event attributes for the request.
      *
      * @param {object} [params]
@@ -45,6 +64,7 @@ export default class Github_Flows_App_Event_Attribute_Provider {
       const sizeBytes = measurePayloadSize(payload);
       return {
         ...buildSizeFlags(sizeBytes),
+        ...buildIssueLabelFlags(payload),
       };
     };
   }

@@ -3,6 +3,13 @@ import test from "node:test";
 
 import Github_Flows_App_Event_Attribute_Provider from "../../../../src/Event/Attribute/Provider.mjs";
 
+const expectedSizeAttributeNames = [
+  "sizeLess10K",
+  "sizeLess100K",
+  "sizeLess1M",
+  "sizeLess2M",
+];
+
 const expectedSizeAttributes = {
   sizeLess10K: true,
   sizeLess100K: true,
@@ -10,11 +17,19 @@ const expectedSizeAttributes = {
   sizeLess2M: true,
 };
 
-const assertSizeAttributeShape = result => {
-  assert.deepEqual(Object.keys(result).sort(), Object.keys(expectedSizeAttributes).sort());
-  for (const value of Object.values(result)) {
-    assert.equal(typeof value, "boolean");
+const assertSizeAttributesPresent = result => {
+  for (const name of expectedSizeAttributeNames) {
+    assert.equal(typeof result[name], "boolean");
   }
+};
+
+const assertSizeOnlyAttributeShape = result => {
+  assert.deepEqual(Object.keys(result).sort(), expectedSizeAttributeNames.toSorted());
+  assertSizeAttributesPresent(result);
+};
+
+const assertAttributeAbsent = (result, name) => {
+  assert.equal(Object.hasOwn(result, name), false);
 };
 
 test("Event attribute provider returns documented size attributes for an empty payload", async () => {
@@ -31,8 +46,8 @@ test("Event attribute provider returns documented size attributes for an empty p
     payload: {},
   });
 
-  assertSizeAttributeShape(resultOne);
-  assertSizeAttributeShape(resultTwo);
+  assertSizeOnlyAttributeShape(resultOne);
+  assertSizeOnlyAttributeShape(resultTwo);
   assert.deepEqual(resultOne, {
     sizeLess10K: true,
     sizeLess100K: true,
@@ -53,8 +68,8 @@ test("Event attribute provider treats missing payload as zero-size input", async
   const resultWithoutParams = await provider.getAttributes();
   const resultWithoutPayload = await provider.getAttributes({});
 
-  assertSizeAttributeShape(resultWithoutParams);
-  assertSizeAttributeShape(resultWithoutPayload);
+  assertSizeOnlyAttributeShape(resultWithoutParams);
+  assertSizeOnlyAttributeShape(resultWithoutPayload);
   assert.deepEqual(resultWithoutParams, expectedSizeAttributes);
   assert.deepEqual(resultWithoutPayload, expectedSizeAttributes);
 });
@@ -76,7 +91,7 @@ test("Event attribute provider uses strict less-than size thresholds", async () 
   for (const [size, sizeLess10K, sizeLess100K, sizeLess1M, sizeLess2M] of cases) {
     const result = await provider.getAttributes({ payload: "x".repeat(size) });
 
-    assertSizeAttributeShape(result);
+    assertSizeOnlyAttributeShape(result);
     assert.deepEqual(
       result,
       { sizeLess10K, sizeLess100K, sizeLess1M, sizeLess2M },
@@ -100,14 +115,14 @@ test("Event attribute provider measures the serialized full payload, not only is
     },
   });
 
-  assertSizeAttributeShape(result);
+  assertSizeOnlyAttributeShape(result);
   assert.equal(result.sizeLess10K, false);
   assert.equal(result.sizeLess100K, true);
   assert.equal(result.sizeLess1M, true);
   assert.equal(result.sizeLess2M, true);
 });
 
-test("Event attribute provider currently consumes only payload", async () => {
+test("Event attribute provider derives attributes from payload rather than non-payload runtime parameters", async () => {
   const provider = new Github_Flows_App_Event_Attribute_Provider({});
   const payload = {
     issue: {
@@ -128,7 +143,287 @@ test("Event attribute provider currently consumes only payload", async () => {
     payload,
   });
 
-  assertSizeAttributeShape(resultOne);
-  assertSizeAttributeShape(resultTwo);
+  assertSizeOnlyAttributeShape(resultOne);
+  assertSizeOnlyAttributeShape(resultTwo);
   assert.deepEqual(resultOne, resultTwo);
+});
+
+test("Event attribute provider returns issueLabelAdded for issues.labeled payload", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    payload: {
+      action: "labeled",
+      label: {
+        name: "adsm",
+      },
+      issue: {
+        number: 1,
+      },
+      repository: {
+        full_name: "owner/repo",
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assert.equal(result.issueLabelAdded, "adsm");
+  assertAttributeAbsent(result, "issueLabelRemoved");
+  assertAttributeAbsent(result, "issueAddedLabel");
+});
+
+test("Event attribute provider returns issueLabelRemoved for issues.unlabeled payload", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    payload: {
+      action: "unlabeled",
+      label: {
+        name: "adsm",
+      },
+      issue: {
+        number: 1,
+      },
+      repository: {
+        full_name: "owner/repo",
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assert.equal(result.issueLabelRemoved, "adsm");
+  assertAttributeAbsent(result, "issueLabelAdded");
+  assertAttributeAbsent(result, "issueAddedLabel");
+});
+
+test("Event attribute provider preserves exact added label string", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    payload: {
+      action: "labeled",
+      label: {
+        name: "ADSM Review",
+      },
+      issue: {
+        number: 1,
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assert.equal(result.issueLabelAdded, "ADSM Review");
+});
+
+test("Event attribute provider preserves exact removed label string", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    payload: {
+      action: "unlabeled",
+      label: {
+        name: "ADSM Review",
+      },
+      issue: {
+        number: 1,
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assert.equal(result.issueLabelRemoved, "ADSM Review");
+});
+
+test("Event attribute provider omits label attributes for non-label issue action", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    payload: {
+      action: "opened",
+      label: {
+        name: "adsm",
+      },
+      issue: {
+        number: 1,
+      },
+    },
+  });
+
+  assertSizeOnlyAttributeShape(result);
+  assertAttributeAbsent(result, "issueLabelAdded");
+  assertAttributeAbsent(result, "issueLabelRemoved");
+  assertAttributeAbsent(result, "issueAddedLabel");
+});
+
+test("Event attribute provider omits issueLabelAdded when label is missing", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    payload: {
+      action: "labeled",
+      issue: {
+        number: 1,
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assertAttributeAbsent(result, "issueLabelAdded");
+  assertAttributeAbsent(result, "issueLabelRemoved");
+});
+
+test("Event attribute provider omits issueLabelRemoved when label is missing", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    payload: {
+      action: "unlabeled",
+      issue: {
+        number: 1,
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assertAttributeAbsent(result, "issueLabelRemoved");
+  assertAttributeAbsent(result, "issueLabelAdded");
+});
+
+test("Event attribute provider omits label attributes when label.name is missing", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+  const cases = [
+    {
+      action: "labeled",
+      label: {},
+      issue: {
+        number: 1,
+      },
+    },
+    {
+      action: "unlabeled",
+      label: {},
+      issue: {
+        number: 1,
+      },
+    },
+  ];
+
+  for (const payload of cases) {
+    const result = await provider.getAttributes({ payload });
+
+    assertSizeAttributesPresent(result);
+    assertAttributeAbsent(result, "issueLabelAdded");
+    assertAttributeAbsent(result, "issueLabelRemoved");
+  }
+});
+
+test("Event attribute provider omits label attributes when label.name is not a string", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+  const cases = [
+    {
+      action: "labeled",
+      label: {
+        name: 123,
+      },
+      issue: {
+        number: 1,
+      },
+    },
+    {
+      action: "labeled",
+      label: {
+        name: null,
+      },
+      issue: {
+        number: 1,
+      },
+    },
+    {
+      action: "unlabeled",
+      label: {
+        name: 123,
+      },
+      issue: {
+        number: 1,
+      },
+    },
+    {
+      action: "unlabeled",
+      label: {
+        name: null,
+      },
+      issue: {
+        number: 1,
+      },
+    },
+  ];
+
+  for (const payload of cases) {
+    const result = await provider.getAttributes({ payload });
+
+    assertSizeAttributesPresent(result);
+    assertAttributeAbsent(result, "issueLabelAdded");
+    assertAttributeAbsent(result, "issueLabelRemoved");
+  }
+});
+
+test("Event attribute provider does not derive issueLabelAdded from payload.issue.labels", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    payload: {
+      action: "labeled",
+      issue: {
+        number: 1,
+        labels: [
+          { name: "adsm" },
+        ],
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assertAttributeAbsent(result, "issueLabelAdded");
+  assertAttributeAbsent(result, "issueLabelRemoved");
+});
+
+test("Event attribute provider does not derive issueLabelRemoved from absence in payload.issue.labels", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    payload: {
+      action: "unlabeled",
+      issue: {
+        number: 1,
+        labels: [],
+      },
+      label: {
+        name: undefined,
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assertAttributeAbsent(result, "issueLabelRemoved");
+  assertAttributeAbsent(result, "issueLabelAdded");
+});
+
+test("Event attribute provider does not derive label attributes from issue labels on another action", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    payload: {
+      action: "opened",
+      issue: {
+        number: 1,
+        labels: [
+          { name: "adsm" },
+        ],
+      },
+    },
+  });
+
+  assertSizeOnlyAttributeShape(result);
+  assertAttributeAbsent(result, "issueLabelAdded");
+  assertAttributeAbsent(result, "issueLabelRemoved");
 });

@@ -5,16 +5,26 @@ import { fileURLToPath } from "node:url";
 import Github_Flows_App_Bootstrap from "../../src/Bootstrap.mjs";
 import Github_Flows_App_Event_Attribute_Provider from "../../src/Event/Attribute/Provider.mjs";
 
-const assertSizeAttributeShape = result => {
-  assert.deepEqual(Object.keys(result).sort(), [
-    "sizeLess100K",
-    "sizeLess10K",
-    "sizeLess1M",
-    "sizeLess2M",
-  ].sort());
-  for (const value of Object.values(result)) {
-    assert.equal(typeof value, "boolean");
+const expectedSizeAttributeNames = [
+  "sizeLess10K",
+  "sizeLess100K",
+  "sizeLess1M",
+  "sizeLess2M",
+];
+
+const assertSizeAttributesPresent = result => {
+  for (const name of expectedSizeAttributeNames) {
+    assert.equal(typeof result[name], "boolean");
   }
+};
+
+const assertSizeOnlyAttributeShape = result => {
+  assert.deepEqual(Object.keys(result).sort(), expectedSizeAttributeNames.toSorted());
+  assertSizeAttributesPresent(result);
+};
+
+const assertAttributeAbsent = (result, name) => {
+  assert.equal(Object.hasOwn(result, name), false);
 };
 
 const createBootstrapDeps = ({ attributeProvider, onSetProvider }) => ({
@@ -127,8 +137,8 @@ test("Registered real event attribute provider returns documented plain size att
   const smallResult = await capturedProvider.getAttributes({ payload: smallPayload });
   const largeResult = await capturedProvider.getAttributes({ payload: largePayload });
 
-  assertSizeAttributeShape(smallResult);
-  assertSizeAttributeShape(largeResult);
+  assertSizeOnlyAttributeShape(smallResult);
+  assertSizeOnlyAttributeShape(largeResult);
   assert.deepEqual(smallResult, {
     sizeLess10K: true,
     sizeLess100K: true,
@@ -141,4 +151,64 @@ test("Registered real event attribute provider returns documented plain size att
     sizeLess1M: true,
     sizeLess2M: true,
   });
+});
+
+test("Registered real event attribute provider returns issue label event attributes", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider();
+  let capturedProvider;
+
+  const app = new Github_Flows_App_Bootstrap(createBootstrapDeps({
+    attributeProvider: provider,
+    onSetProvider(nextProvider) {
+      capturedProvider = nextProvider;
+    },
+  }));
+
+  const projectRoot = fileURLToPath(new URL("../../", import.meta.url));
+  const runPromise = app.run({ projectRoot, cliArgs: [] });
+  await new Promise(resolve => setImmediate(resolve));
+  await app.stop();
+  const exitCode = await runPromise;
+
+  assert.equal(exitCode, 0);
+  assert.equal(capturedProvider, provider);
+
+  const addedResult = await capturedProvider.getAttributes({
+    payload: {
+      action: "labeled",
+      label: {
+        name: "adsm",
+      },
+      issue: {
+        number: 1,
+      },
+      repository: {
+        full_name: "owner/repo",
+      },
+    },
+  });
+  const removedResult = await capturedProvider.getAttributes({
+    payload: {
+      action: "unlabeled",
+      label: {
+        name: "adsm",
+      },
+      issue: {
+        number: 1,
+      },
+      repository: {
+        full_name: "owner/repo",
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(addedResult);
+  assert.equal(addedResult.issueLabelAdded, "adsm");
+  assertAttributeAbsent(addedResult, "issueLabelRemoved");
+  assertAttributeAbsent(addedResult, "issueAddedLabel");
+
+  assertSizeAttributesPresent(removedResult);
+  assert.equal(removedResult.issueLabelRemoved, "adsm");
+  assertAttributeAbsent(removedResult, "issueLabelAdded");
+  assertAttributeAbsent(removedResult, "issueAddedLabel");
 });
