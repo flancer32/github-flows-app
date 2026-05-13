@@ -9,7 +9,7 @@ export default class Github_Flows_App_Config_Loader {
    * @param {object} deps
    * @param {typeof import("node:fs")} deps.fs
    * @param {typeof import("node:path")} deps.path
-   * @param {Github_Flows_Config_Runtime__Factory} deps.appCfgRuntimeFactory
+   * @param {Github_Flows_App_Config_Runtime__Factory} deps.appCfgRuntimeFactory
    */
   constructor({ fs, path, appCfgRuntimeFactory }) {
     /**
@@ -64,7 +64,7 @@ export default class Github_Flows_App_Config_Loader {
      *
      * @param {object} params
      * @param {string} params.projectRoot
-     * @returns {Promise<object>}
+     * @returns {Promise<Github_Flows_App_Config_Runtime>}
      */
     this.load = async function ({ projectRoot }) {
       const env = await readEnvFile(projectRoot);
@@ -79,8 +79,7 @@ export default class Github_Flows_App_Config_Loader {
       if (env.WORKSPACE_ROOT !== undefined) cfg.workspaceRoot = env.WORKSPACE_ROOT;
       if (env.WEBHOOK_SECRET !== undefined) cfg.webhookSecret = env.WEBHOOK_SECRET;
       appCfgRuntimeFactory.configure(cfg);
-      appCfgRuntimeFactory.freeze();
-      return cfg;
+      return appCfgRuntimeFactory.freeze();
     };
   }
 }
@@ -89,6 +88,6 @@ export const __deps__ = Object.freeze({
   default: {
     fs: "node:fs",
     path: "node:path",
-    appCfgRuntimeFactory: "Github_Flows_Config_Runtime__Factory$",
+    appCfgRuntimeFactory: "Github_Flows_App_Config_Runtime__Factory$",
   },
 });

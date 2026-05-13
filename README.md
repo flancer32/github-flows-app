@@ -30,7 +30,7 @@ npm start
 
 ## Web Server
 
-Run the application behind a web server and proxy only the GitHub webhook endpoint to the local service. Serve static files from the `web/` directory.
+Run the application behind a web server and proxy only the GitHub webhook endpoint to the local service. Serve static operational files from the `web/` directory, and protect linked runtime log/config directories before exposing them.
 
 ```apache
 <VirtualHost *:80>
@@ -134,6 +134,6 @@ docker build \
   -f etc/docker/Dockerfile.codex \
   --build-arg UID=$(id -u) \
   --build-arg GID=$(id -g) \
-  -t codex-agent \
+  -t github-flows-agent-codex:latest \
   .
 ```

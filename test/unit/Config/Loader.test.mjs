@@ -9,6 +9,12 @@ import Github_Flows_App_Config_Loader from "../../../src/Config/Loader.mjs";
 
 test("Config loader reads env files and maps runtime params", async () => {
   const calls = [];
+  const runtime = Object.freeze({
+    httpHost: "0.0.0.0",
+    httpPort: 8080,
+    workspaceRoot: "/tmp/work",
+    webhookSecret: "secret",
+  });
   const loader = new Github_Flows_App_Config_Loader({
     fs,
     path,
@@ -18,18 +24,14 @@ test("Config loader reads env files and maps runtime params", async () => {
       },
       freeze() {
         calls.push(["freeze"]);
+        return runtime;
       },
     },
   });
   const dir = await mkdtemp(path.join(os.tmpdir(), "github-flows-app-"));
   try {
     await writeFile(path.join(dir, ".env"), "HOST=0.0.0.0\nPORT=8080\nWORKSPACE_ROOT=/tmp/work\nWEBHOOK_SECRET=secret\n");
-    assert.deepEqual(await loader.load({ projectRoot: dir }), {
-      httpHost: "0.0.0.0",
-      httpPort: 8080,
-      workspaceRoot: "/tmp/work",
-      webhookSecret: "secret",
-    });
+    assert.equal(await loader.load({ projectRoot: dir }), runtime);
     assert.deepEqual(calls, [
       ["configure", {
         httpHost: "0.0.0.0",
@@ -46,15 +48,18 @@ test("Config loader reads env files and maps runtime params", async () => {
 
 test("Config loader falls back to code defaults without env file", async () => {
   const calls = [];
+  let runtime;
   const loader = new Github_Flows_App_Config_Loader({
     fs,
     path,
     appCfgRuntimeFactory: {
       configure(params) {
         calls.push(["configure", params]);
+        runtime = Object.freeze({ ...params });
       },
       freeze() {
         calls.push(["freeze"]);
+        return runtime;
       },
     },
   });

@@ -52,7 +52,9 @@ export default class Github_Flows_App_Bootstrap {
      * @returns {object}
      */
     const redactRuntimeParams = runtimeParams => ({
-      ...runtimeParams,
+      httpHost: runtimeParams.httpHost,
+      httpPort: runtimeParams.httpPort,
+      workspaceRoot: runtimeParams.workspaceRoot,
       webhookSecret: runtimeParams.webhookSecret === undefined ? undefined : "[redacted]",
     });
 
