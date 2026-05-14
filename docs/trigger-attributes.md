@@ -20,7 +20,7 @@ For one admitted GitHub event, trigger matching can use:
 | Source | Owner | Examples |
 | --- | --- | --- |
 | Base attributes | `@teqfw/github-flows` | `event`, `repository`, `action`, `actorLogin` |
-| Additional attributes | `@flancer32/github-flows-app` | `sizeLess100K`, `issueLabelAdded` |
+| Additional attributes | `@flancer32/github-flows-app` | `sizeLess100K`, `issueLabelAdded`, `pullRequestMerged` |
 
 The application-provided attributes are factual values derived from the current
 webhook payload only. They do not grant execution permission and do not replace
@@ -137,6 +137,73 @@ Example for a label-removed trigger:
 
 These attributes are omitted for non-`issues` events, non-label issue actions,
 missing label objects, or non-string `label.name` values.
+
+## Application-Provided Pull Request Attributes
+
+The application may return pull request attributes for `pull_request` events:
+
+| Attribute | Type | Present when |
+| --- | --- | --- |
+| `pullRequestLabelAdded` | string | `event` is `pull_request`, payload action is `labeled`, and `payload.label.name` is a string |
+| `pullRequestLabelRemoved` | string | `event` is `pull_request`, payload action is `unlabeled`, and `payload.label.name` is a string |
+| `pullRequestMerged` | boolean | `event` is `pull_request`, payload action is `closed`, and `payload.pull_request.merged` is a boolean |
+
+The label attribute value is the exact label name from the webhook payload.
+Case, spacing, and punctuation are preserved.
+
+The application does not derive pull request label attributes from the current
+full label list on the pull request. It uses only the label object attached to
+the current `labeled` or `unlabeled` webhook event.
+
+`pullRequestMerged` uses `payload.pull_request.merged` from the current
+`closed` webhook event.
+
+These attributes are omitted when the required payload structure is absent or
+has the wrong type. They are also omitted for non-`pull_request` events and
+non-matching pull request actions.
+
+Example for a pull request label-added trigger:
+
+```json
+{
+  "trigger": {
+    "repository": "owner/repository",
+    "event": "pull_request",
+    "action": "labeled",
+    "pullRequestLabelAdded": "needs-spec"
+  }
+}
+```
+
+Example for a pull request label-removed trigger:
+
+```json
+{
+  "trigger": {
+    "repository": "owner/repository",
+    "event": "pull_request",
+    "action": "unlabeled",
+    "pullRequestLabelRemoved": "needs-spec"
+  }
+}
+```
+
+Example for a merged pull request trigger:
+
+```json
+{
+  "trigger": {
+    "repository": "owner/repository",
+    "event": "pull_request",
+    "action": "closed",
+    "pullRequestMerged": true
+  }
+}
+```
+
+Pull request attributes are derived only from the current webhook payload. They
+do not grant execution permission and do not replace base attributes such as
+`event`, `repository`, or `action`.
 
 ## Recommended Trigger Shape
 

@@ -21,6 +21,10 @@ const issuesEventModel = Object.freeze({
   event: "issues",
 });
 
+const pullRequestEventModel = Object.freeze({
+  event: "pull_request",
+});
+
 const assertSizeAttributesPresent = result => {
   for (const name of expectedSizeAttributeNames) {
     assert.equal(typeof result[name], "boolean");
@@ -34,6 +38,16 @@ const assertSizeOnlyAttributeShape = result => {
 
 const assertAttributeAbsent = (result, name) => {
   assert.equal(Object.hasOwn(result, name), false);
+};
+
+const assertPullRequestLabelAttributesAbsent = result => {
+  assertAttributeAbsent(result, "pullRequestLabelAdded");
+  assertAttributeAbsent(result, "pullRequestLabelRemoved");
+};
+
+const assertPullRequestAttributesAbsent = result => {
+  assertPullRequestLabelAttributesAbsent(result);
+  assertAttributeAbsent(result, "pullRequestMerged");
 };
 
 test("Event attribute provider returns documented size attributes for an empty payload", async () => {
@@ -246,7 +260,7 @@ test("Event attribute provider omits issue label attributes for non-issues event
   for (const { eventModel, payload } of cases) {
     const result = await provider.getAttributes({ eventModel, payload });
 
-    assertSizeOnlyAttributeShape(result);
+    assertSizeAttributesPresent(result);
     assertAttributeAbsent(result, "issueLabelAdded");
     assertAttributeAbsent(result, "issueLabelRemoved");
   }
@@ -490,4 +504,274 @@ test("Event attribute provider does not derive label attributes from issue label
   assertSizeOnlyAttributeShape(result);
   assertAttributeAbsent(result, "issueLabelAdded");
   assertAttributeAbsent(result, "issueLabelRemoved");
+});
+
+test("Event attribute provider returns pullRequestLabelAdded for pull_request.labeled payload", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    eventModel: pullRequestEventModel,
+    payload: {
+      action: "labeled",
+      label: {
+        name: "ADSM Review: ready",
+      },
+      pull_request: {
+        number: 1,
+      },
+      repository: {
+        full_name: "owner/repo",
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assert.equal(result.pullRequestLabelAdded, "ADSM Review: ready");
+  assertAttributeAbsent(result, "pullRequestLabelRemoved");
+  assertAttributeAbsent(result, "pullRequestMerged");
+  assertAttributeAbsent(result, "issueLabelAdded");
+  assertAttributeAbsent(result, "issueLabelRemoved");
+});
+
+test("Event attribute provider returns pullRequestLabelRemoved for pull_request.unlabeled payload", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    eventModel: pullRequestEventModel,
+    payload: {
+      action: "unlabeled",
+      label: {
+        name: "ADSM Review: ready",
+      },
+      pull_request: {
+        number: 1,
+      },
+      repository: {
+        full_name: "owner/repo",
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assert.equal(result.pullRequestLabelRemoved, "ADSM Review: ready");
+  assertAttributeAbsent(result, "pullRequestLabelAdded");
+  assertAttributeAbsent(result, "pullRequestMerged");
+  assertAttributeAbsent(result, "issueLabelAdded");
+  assertAttributeAbsent(result, "issueLabelRemoved");
+});
+
+test("Event attribute provider returns pullRequestMerged true for pull_request.closed payload", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    eventModel: pullRequestEventModel,
+    payload: {
+      action: "closed",
+      pull_request: {
+        merged: true,
+        number: 1,
+      },
+      repository: {
+        full_name: "owner/repo",
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assert.equal(result.pullRequestMerged, true);
+  assertPullRequestLabelAttributesAbsent(result);
+});
+
+test("Event attribute provider returns pullRequestMerged false for pull_request.closed payload", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    eventModel: pullRequestEventModel,
+    payload: {
+      action: "closed",
+      pull_request: {
+        merged: false,
+        number: 1,
+      },
+      repository: {
+        full_name: "owner/repo",
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assert.equal(result.pullRequestMerged, false);
+  assertPullRequestLabelAttributesAbsent(result);
+});
+
+test("Event attribute provider omits pull request label attributes for non-pull_request events", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+  const cases = [
+    {
+      eventModel: { event: "issues" },
+      payload: {
+        action: "labeled",
+        label: {
+          name: "adsm",
+        },
+      },
+    },
+    {
+      eventModel: { event: "check_run" },
+      payload: {
+        action: "unlabeled",
+        label: {
+          name: "adsm",
+        },
+      },
+    },
+    {
+      eventModel: undefined,
+      payload: {
+        action: "labeled",
+        label: {
+          name: "adsm",
+        },
+      },
+    },
+  ];
+
+  for (const { eventModel, payload } of cases) {
+    const result = await provider.getAttributes({ eventModel, payload });
+
+    assertSizeAttributesPresent(result);
+    assertPullRequestLabelAttributesAbsent(result);
+  }
+});
+
+test("Event attribute provider omits pull request label attributes when label.name is missing", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+  const cases = [
+    {
+      action: "labeled",
+      label: {},
+      pull_request: {
+        number: 1,
+      },
+    },
+    {
+      action: "unlabeled",
+      label: {},
+      pull_request: {
+        number: 1,
+      },
+    },
+    {
+      action: "labeled",
+      pull_request: {
+        number: 1,
+      },
+    },
+    {
+      action: "unlabeled",
+      pull_request: {
+        number: 1,
+      },
+    },
+  ];
+
+  for (const payload of cases) {
+    const result = await provider.getAttributes({ eventModel: pullRequestEventModel, payload });
+
+    assertSizeOnlyAttributeShape(result);
+    assertPullRequestLabelAttributesAbsent(result);
+  }
+});
+
+test("Event attribute provider omits pull request label attributes when label.name is not a string", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+  const cases = [
+    {
+      action: "labeled",
+      label: {
+        name: 123,
+      },
+      pull_request: {
+        number: 1,
+      },
+    },
+    {
+      action: "labeled",
+      label: {
+        name: null,
+      },
+      pull_request: {
+        number: 1,
+      },
+    },
+    {
+      action: "unlabeled",
+      label: {
+        name: 123,
+      },
+      pull_request: {
+        number: 1,
+      },
+    },
+    {
+      action: "unlabeled",
+      label: {
+        name: null,
+      },
+      pull_request: {
+        number: 1,
+      },
+    },
+  ];
+
+  for (const payload of cases) {
+    const result = await provider.getAttributes({ eventModel: pullRequestEventModel, payload });
+
+    assertSizeOnlyAttributeShape(result);
+    assertPullRequestLabelAttributesAbsent(result);
+  }
+});
+
+test("Event attribute provider omits pullRequestMerged when action is not closed", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    eventModel: pullRequestEventModel,
+    payload: {
+      action: "opened",
+      pull_request: {
+        merged: true,
+        number: 1,
+      },
+    },
+  });
+
+  assertSizeOnlyAttributeShape(result);
+  assertPullRequestAttributesAbsent(result);
+});
+
+test("Event attribute provider omits pullRequestMerged when merged is not a boolean", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+  const cases = [
+    {
+      action: "closed",
+      pull_request: {
+        merged: "true",
+      },
+    },
+    {
+      action: "closed",
+      pull_request: {},
+    },
+    {
+      action: "closed",
+    },
+  ];
+
+  for (const payload of cases) {
+    const result = await provider.getAttributes({ eventModel: pullRequestEventModel, payload });
+
+    assertSizeOnlyAttributeShape(result);
+    assertPullRequestAttributesAbsent(result);
+  }
 });

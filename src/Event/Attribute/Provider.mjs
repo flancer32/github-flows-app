@@ -59,6 +59,34 @@ export default class Github_Flows_App_Event_Attribute_Provider {
     };
 
     /**
+     * Derive pull request event attributes from the current webhook payload.
+     *
+     * @param {*} payload
+     * @param {*} eventModel
+     * @returns {object}
+     */
+    const buildPullRequestFlags = ({ eventModel, payload }) => {
+      if (!eventModel || typeof eventModel !== "object" || eventModel.event !== "pull_request") {
+        return {};
+      }
+      if (!payload || typeof payload !== "object") {
+        return {};
+      }
+      if (typeof payload.label?.name === "string") {
+        if (payload.action === "labeled") {
+          return { pullRequestLabelAdded: payload.label.name };
+        }
+        if (payload.action === "unlabeled") {
+          return { pullRequestLabelRemoved: payload.label.name };
+        }
+      }
+      if (payload.action === "closed" && typeof payload.pull_request?.merged === "boolean") {
+        return { pullRequestMerged: payload.pull_request.merged };
+      }
+      return {};
+    };
+
+    /**
      * Resolve event attributes for the request.
      *
      * @param {object} [params]
@@ -70,6 +98,7 @@ export default class Github_Flows_App_Event_Attribute_Provider {
       return {
         ...buildSizeFlags(sizeBytes),
         ...buildIssueLabelFlags({ eventModel, payload }),
+        ...buildPullRequestFlags({ eventModel, payload }),
       };
     };
   }

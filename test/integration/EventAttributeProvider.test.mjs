@@ -16,6 +16,10 @@ const issuesEventModel = Object.freeze({
   event: "issues",
 });
 
+const pullRequestEventModel = Object.freeze({
+  event: "pull_request",
+});
+
 const assertSizeAttributesPresent = result => {
   for (const name of expectedSizeAttributeNames) {
     assert.equal(typeof result[name], "boolean");
@@ -29,6 +33,11 @@ const assertSizeOnlyAttributeShape = result => {
 
 const assertAttributeAbsent = (result, name) => {
   assert.equal(Object.hasOwn(result, name), false);
+};
+
+const assertPullRequestLabelAttributesAbsent = result => {
+  assertAttributeAbsent(result, "pullRequestLabelAdded");
+  assertAttributeAbsent(result, "pullRequestLabelRemoved");
 };
 
 const createBootstrapDeps = ({ attributeProvider, onSetProvider }) => ({
@@ -218,4 +227,83 @@ test("Registered real event attribute provider returns issue label event attribu
   assert.equal(removedResult.issueLabelRemoved, "adsm");
   assertAttributeAbsent(removedResult, "issueLabelAdded");
   assertAttributeAbsent(removedResult, "issueAddedLabel");
+});
+
+test("Registered real event attribute provider returns pull request event attributes", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider();
+  let capturedProvider;
+
+  const app = new Github_Flows_App_Bootstrap(createBootstrapDeps({
+    attributeProvider: provider,
+    onSetProvider(nextProvider) {
+      capturedProvider = nextProvider;
+    },
+  }));
+
+  const projectRoot = fileURLToPath(new URL("../../", import.meta.url));
+  const runPromise = app.run({ projectRoot, cliArgs: [] });
+  await new Promise(resolve => setImmediate(resolve));
+  await app.stop();
+  const exitCode = await runPromise;
+
+  assert.equal(exitCode, 0);
+  assert.equal(capturedProvider, provider);
+
+  const addedResult = await capturedProvider.getAttributes({
+    eventModel: pullRequestEventModel,
+    payload: {
+      action: "labeled",
+      label: {
+        name: "adsm",
+      },
+      pull_request: {
+        number: 1,
+      },
+      repository: {
+        full_name: "owner/repo",
+      },
+    },
+  });
+  const removedResult = await capturedProvider.getAttributes({
+    eventModel: pullRequestEventModel,
+    payload: {
+      action: "unlabeled",
+      label: {
+        name: "adsm",
+      },
+      pull_request: {
+        number: 1,
+      },
+      repository: {
+        full_name: "owner/repo",
+      },
+    },
+  });
+  const mergedResult = await capturedProvider.getAttributes({
+    eventModel: pullRequestEventModel,
+    payload: {
+      action: "closed",
+      pull_request: {
+        merged: true,
+        number: 1,
+      },
+      repository: {
+        full_name: "owner/repo",
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(addedResult);
+  assert.equal(addedResult.pullRequestLabelAdded, "adsm");
+  assertAttributeAbsent(addedResult, "pullRequestLabelRemoved");
+  assertAttributeAbsent(addedResult, "pullRequestMerged");
+
+  assertSizeAttributesPresent(removedResult);
+  assert.equal(removedResult.pullRequestLabelRemoved, "adsm");
+  assertAttributeAbsent(removedResult, "pullRequestLabelAdded");
+  assertAttributeAbsent(removedResult, "pullRequestMerged");
+
+  assertSizeAttributesPresent(mergedResult);
+  assert.equal(mergedResult.pullRequestMerged, true);
+  assertPullRequestLabelAttributesAbsent(mergedResult);
 });

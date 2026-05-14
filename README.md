@@ -92,6 +92,7 @@ adds factual attributes derived from the current webhook payload:
 
 - payload size flags: `sizeLess10K`, `sizeLess100K`, `sizeLess1M`, `sizeLess2M`
 - issue label event attributes: `issueLabelAdded`, `issueLabelRemoved`
+- pull request attributes: `pullRequestLabelAdded`, `pullRequestLabelRemoved`, `pullRequestMerged`
 
 Use [docs/trigger-attributes.md](docs/trigger-attributes.md) for the exact
 attribute contract and examples.
