@@ -14,6 +14,7 @@ export default class Github_Flows_App_Bootstrap {
    * @param {Github_Flows_Web_Handler_Static} deps.appWebStaticHandler
    * @param {Github_Flows_Web_Dto_Source__Factory} deps.appWebSourceFactory
    * @param {Github_Flows_Web_Server} deps.appWebServer
+   * @param {Github_Flows_Web_Handler_Webhook} deps.appWebhookHandler
   */
   constructor({
     appCfgRuntimeLoader,
@@ -23,6 +24,7 @@ export default class Github_Flows_App_Bootstrap {
     appWebStaticHandler,
     appWebSourceFactory,
     appWebServer,
+    appWebhookHandler,
   }) {
     /** @type {boolean} */
     let started = false;
@@ -86,6 +88,10 @@ export default class Github_Flows_App_Bootstrap {
         provider: appEventAttributeProvider.constructor?.name ?? "anonymous",
       });
 
+      // Pre-register the runtime webhook handler so request ordering stays ahead of the static surface.
+      appWebPipelineEngine.addHandler(appWebhookHandler);
+      trace("pipeline:webhook-handler-registered", { handler: appWebhookHandler.constructor?.name });
+
       await appWebStaticHandler.init({
         sources: [
           appWebSourceFactory.create({
@@ -136,4 +142,5 @@ export const __deps__ = Object.freeze({
   appWebStaticHandler: "Fl32_Web_Back_Handler_Static$",
   appWebSourceFactory: "Fl32_Web_Back_Dto_Source__Factory$",
   appWebServer: "Github_Flows_Web_Server$",
+  appWebhookHandler: "Github_Flows_Web_Handler_Webhook$",
 });

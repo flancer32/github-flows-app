@@ -15,6 +15,7 @@ test("App exposes run and stop methods", async () => {
       calls.push(["init", params]);
     },
   };
+  const webhookHandler = {};
   const app = new Github_Flows_App_Bootstrap({
     appCfgRuntimeLoader: {
       load({ projectRoot }) {
@@ -53,6 +54,7 @@ test("App exposes run and stop methods", async () => {
         return { params };
       },
     },
+    appWebhookHandler: webhookHandler,
   });
 
   assert.equal(typeof app.run, "function");
@@ -64,6 +66,7 @@ test("App exposes run and stop methods", async () => {
   assert.deepEqual(calls, [
     ["load", "/tmp/project"],
     ["setProvider", attributeProvider],
+    ["addHandler", webhookHandler],
     ["create", {
       root: "/tmp/project/web",
       prefix: "/",
@@ -139,6 +142,7 @@ test("App redacts webhookSecret in bootstrap runtime trace", async () => {
           return {};
         },
       },
+      appWebhookHandler: {},
     });
 
     const runPromise = app.run({ projectRoot: "/tmp/project", cliArgs: [] });

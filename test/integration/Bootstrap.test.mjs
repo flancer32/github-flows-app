@@ -36,6 +36,7 @@ const createBootstrapDeps = ({ attributeProvider, onSetProvider = () => {} }) =>
     async start() {},
     async stop() {},
   },
+  appWebhookHandler: {},
 });
 
 test("App module can be imported and executed", async () => {

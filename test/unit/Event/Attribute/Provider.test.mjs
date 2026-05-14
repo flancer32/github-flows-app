@@ -17,6 +17,10 @@ const expectedSizeAttributes = {
   sizeLess2M: true,
 };
 
+const issuesEventModel = Object.freeze({
+  event: "issues",
+});
+
 const assertSizeAttributesPresent = result => {
   for (const name of expectedSizeAttributeNames) {
     assert.equal(typeof result[name], "boolean");
@@ -152,6 +156,7 @@ test("Event attribute provider returns issueLabelAdded for issues.labeled payloa
   const provider = new Github_Flows_App_Event_Attribute_Provider({});
 
   const result = await provider.getAttributes({
+    eventModel: issuesEventModel,
     payload: {
       action: "labeled",
       label: {
@@ -176,6 +181,7 @@ test("Event attribute provider returns issueLabelRemoved for issues.unlabeled pa
   const provider = new Github_Flows_App_Event_Attribute_Provider({});
 
   const result = await provider.getAttributes({
+    eventModel: issuesEventModel,
     payload: {
       action: "unlabeled",
       label: {
@@ -196,10 +202,61 @@ test("Event attribute provider returns issueLabelRemoved for issues.unlabeled pa
   assertAttributeAbsent(result, "issueAddedLabel");
 });
 
+test("Event attribute provider omits issue label attributes for non-issues event model", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+  const cases = [
+    {
+      eventModel: { event: "pull_request" },
+      payload: {
+        action: "labeled",
+        label: {
+          name: "adsm",
+        },
+        pull_request: {
+          number: 1,
+        },
+      },
+    },
+    {
+      eventModel: { event: "pull_request" },
+      payload: {
+        action: "unlabeled",
+        label: {
+          name: "adsm",
+        },
+        pull_request: {
+          number: 1,
+        },
+      },
+    },
+    {
+      eventModel: undefined,
+      payload: {
+        action: "labeled",
+        label: {
+          name: "adsm",
+        },
+        issue: {
+          number: 1,
+        },
+      },
+    },
+  ];
+
+  for (const { eventModel, payload } of cases) {
+    const result = await provider.getAttributes({ eventModel, payload });
+
+    assertSizeOnlyAttributeShape(result);
+    assertAttributeAbsent(result, "issueLabelAdded");
+    assertAttributeAbsent(result, "issueLabelRemoved");
+  }
+});
+
 test("Event attribute provider preserves exact added label string", async () => {
   const provider = new Github_Flows_App_Event_Attribute_Provider({});
 
   const result = await provider.getAttributes({
+    eventModel: issuesEventModel,
     payload: {
       action: "labeled",
       label: {
@@ -219,6 +276,7 @@ test("Event attribute provider preserves exact removed label string", async () =
   const provider = new Github_Flows_App_Event_Attribute_Provider({});
 
   const result = await provider.getAttributes({
+    eventModel: issuesEventModel,
     payload: {
       action: "unlabeled",
       label: {
@@ -238,6 +296,7 @@ test("Event attribute provider omits label attributes for non-label issue action
   const provider = new Github_Flows_App_Event_Attribute_Provider({});
 
   const result = await provider.getAttributes({
+    eventModel: issuesEventModel,
     payload: {
       action: "opened",
       label: {
@@ -259,6 +318,7 @@ test("Event attribute provider omits issueLabelAdded when label is missing", asy
   const provider = new Github_Flows_App_Event_Attribute_Provider({});
 
   const result = await provider.getAttributes({
+    eventModel: issuesEventModel,
     payload: {
       action: "labeled",
       issue: {
@@ -276,6 +336,7 @@ test("Event attribute provider omits issueLabelRemoved when label is missing", a
   const provider = new Github_Flows_App_Event_Attribute_Provider({});
 
   const result = await provider.getAttributes({
+    eventModel: issuesEventModel,
     payload: {
       action: "unlabeled",
       issue: {
@@ -309,7 +370,7 @@ test("Event attribute provider omits label attributes when label.name is missing
   ];
 
   for (const payload of cases) {
-    const result = await provider.getAttributes({ payload });
+    const result = await provider.getAttributes({ eventModel: issuesEventModel, payload });
 
     assertSizeAttributesPresent(result);
     assertAttributeAbsent(result, "issueLabelAdded");
@@ -359,7 +420,7 @@ test("Event attribute provider omits label attributes when label.name is not a s
   ];
 
   for (const payload of cases) {
-    const result = await provider.getAttributes({ payload });
+    const result = await provider.getAttributes({ eventModel: issuesEventModel, payload });
 
     assertSizeAttributesPresent(result);
     assertAttributeAbsent(result, "issueLabelAdded");
@@ -371,6 +432,7 @@ test("Event attribute provider does not derive issueLabelAdded from payload.issu
   const provider = new Github_Flows_App_Event_Attribute_Provider({});
 
   const result = await provider.getAttributes({
+    eventModel: issuesEventModel,
     payload: {
       action: "labeled",
       issue: {
@@ -391,6 +453,7 @@ test("Event attribute provider does not derive issueLabelRemoved from absence in
   const provider = new Github_Flows_App_Event_Attribute_Provider({});
 
   const result = await provider.getAttributes({
+    eventModel: issuesEventModel,
     payload: {
       action: "unlabeled",
       issue: {
@@ -412,6 +475,7 @@ test("Event attribute provider does not derive label attributes from issue label
   const provider = new Github_Flows_App_Event_Attribute_Provider({});
 
   const result = await provider.getAttributes({
+    eventModel: issuesEventModel,
     payload: {
       action: "opened",
       issue: {

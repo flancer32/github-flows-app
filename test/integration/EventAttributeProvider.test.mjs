@@ -12,6 +12,10 @@ const expectedSizeAttributeNames = [
   "sizeLess2M",
 ];
 
+const issuesEventModel = Object.freeze({
+  event: "issues",
+});
+
 const assertSizeAttributesPresent = result => {
   for (const name of expectedSizeAttributeNames) {
     assert.equal(typeof result[name], "boolean");
@@ -59,6 +63,7 @@ const createBootstrapDeps = ({ attributeProvider, onSetProvider }) => ({
     async start() {},
     async stop() {},
   },
+  appWebhookHandler: {},
 });
 
 test("Bootstrap registers the real event attribute provider without evaluating it", async () => {
@@ -174,6 +179,7 @@ test("Registered real event attribute provider returns issue label event attribu
   assert.equal(capturedProvider, provider);
 
   const addedResult = await capturedProvider.getAttributes({
+    eventModel: issuesEventModel,
     payload: {
       action: "labeled",
       label: {
@@ -188,6 +194,7 @@ test("Registered real event attribute provider returns issue label event attribu
     },
   });
   const removedResult = await capturedProvider.getAttributes({
+    eventModel: issuesEventModel,
     payload: {
       action: "unlabeled",
       label: {

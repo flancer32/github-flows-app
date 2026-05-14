@@ -41,6 +41,64 @@ export default class Github_Flows_App_Config_Loader {
     };
 
     /**
+     * Require a non-empty configuration string.
+     *
+     * @param {string} name
+     * @param {unknown} value
+     * @returns {string}
+     */
+    const requireNonEmptyString = (name, value) => {
+      if (typeof value !== "string" || value.length === 0) {
+        throw new Error(`Invalid runtime configuration field ${name}: value must be a non-empty string.`);
+      }
+      return value;
+    };
+
+    /**
+     * Parse and validate an HTTP port value.
+     *
+     * @param {string} value
+     * @returns {number}
+     */
+    const parsePort = value => {
+      const result = Number.parseInt(value, 10);
+      if (!Number.isInteger(result) || String(result) !== value || result < 1 || result > 65_535) {
+        throw new Error("Invalid runtime configuration field PORT: value must be an integer from 1 to 65535.");
+      }
+      return result;
+    };
+
+    /**
+     * Normalize environment values into runtime configuration.
+     *
+     * @param {Record<string, string>} env
+     * @param {string} projectRoot
+     * @returns {{
+     *   httpHost: string,
+     *   httpPort: number,
+     *   workspaceRoot: string,
+     *   webhookSecret: string,
+     * }}
+     */
+    const buildRuntimeConfig = (env, projectRoot) => {
+      const cfg = {
+        httpHost: "127.0.0.1",
+        httpPort: 3000,
+        workspaceRoot: `${projectRoot}/var/work`,
+        webhookSecret: "replace-with-shared-secret",
+      };
+      if (env.HOST !== undefined) cfg.httpHost = requireNonEmptyString("HOST", env.HOST);
+      if (env.PORT !== undefined) cfg.httpPort = parsePort(env.PORT);
+      if (env.WORKSPACE_ROOT !== undefined) {
+        cfg.workspaceRoot = requireNonEmptyString("WORKSPACE_ROOT", env.WORKSPACE_ROOT);
+      }
+      if (env.WEBHOOK_SECRET !== undefined) {
+        cfg.webhookSecret = requireNonEmptyString("WEBHOOK_SECRET", env.WEBHOOK_SECRET);
+      }
+      return cfg;
+    };
+
+    /**
      * Read dotenv file from the project root.
      *
      * @param {string} projectRoot
@@ -68,16 +126,7 @@ export default class Github_Flows_App_Config_Loader {
      */
     this.load = async function ({ projectRoot }) {
       const env = await readEnvFile(projectRoot);
-      const cfg = {
-        httpHost: "127.0.0.1",
-        httpPort: 3000,
-        workspaceRoot: `${projectRoot}/var/work`,
-        webhookSecret: "replace-with-shared-secret",
-      };
-      if (env.HOST !== undefined) cfg.httpHost = env.HOST;
-      if (env.PORT !== undefined) cfg.httpPort = Number.parseInt(env.PORT, 10);
-      if (env.WORKSPACE_ROOT !== undefined) cfg.workspaceRoot = env.WORKSPACE_ROOT;
-      if (env.WEBHOOK_SECRET !== undefined) cfg.webhookSecret = env.WEBHOOK_SECRET;
+      const cfg = buildRuntimeConfig(env, projectRoot);
       appCfgRuntimeFactory.configure(cfg);
       return appCfgRuntimeFactory.freeze();
     };

@@ -39,9 +39,13 @@ export default class Github_Flows_App_Event_Attribute_Provider {
      * Derive issue label event attributes from the current webhook payload.
      *
      * @param {*} payload
+     * @param {*} eventModel
      * @returns {object}
      */
-    const buildIssueLabelFlags = payload => {
+    const buildIssueLabelFlags = ({ eventModel, payload }) => {
+      if (!eventModel || typeof eventModel !== "object" || eventModel.event !== "issues") {
+        return {};
+      }
       if (!payload || typeof payload !== "object" || typeof payload.label?.name !== "string") {
         return {};
       }
@@ -58,13 +62,14 @@ export default class Github_Flows_App_Event_Attribute_Provider {
      * Resolve event attributes for the request.
      *
      * @param {object} [params]
+     * @param {*} [params.eventModel]
      * @param {*} [params.payload]
      */
-    this.getAttributes = async function ({ payload } = {}) {
+    this.getAttributes = async function ({ eventModel, payload } = {}) {
       const sizeBytes = measurePayloadSize(payload);
       return {
         ...buildSizeFlags(sizeBytes),
-        ...buildIssueLabelFlags(payload),
+        ...buildIssueLabelFlags({ eventModel, payload }),
       };
     };
   }
