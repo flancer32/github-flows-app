@@ -1,8 +1,33 @@
 # github-flows-app
 
-Host application for running `@teqfw/github-flows` as an event-driven agent runtime.
+`@flancer32/github-flows-app` is a ready-to-run host application for
+`@teqfw/github-flows`.
 
-## Installation
+The application starts the Node.js process, loads local runtime configuration,
+registers the application-provided event attribute provider, serves the fixed
+GitHub webhook ingress from the runtime package, and exposes a read-only static
+operational surface from `web/`.
+
+It does not define workflow semantics. Event admission, trigger matching,
+profile selection, execution context creation, and agent startup semantics are
+owned by `@teqfw/github-flows`.
+
+## Reading Order
+
+Read the documentation from the application layer down to the runtime package:
+
+1. [docs/overview.md](docs/overview.md) - application role, boundaries, and navigation.
+2. [docs/runtime-dependency.md](docs/runtime-dependency.md) - how this app depends on `@teqfw/github-flows`.
+3. [docs/workspace.md](docs/workspace.md) - runtime workspace, `cfg/`, logs, and static inspection links.
+4. [docs/trigger-attributes.md](docs/trigger-attributes.md) - base trigger attributes and app-provided additional attributes.
+5. [docs/setup/README.md](docs/setup/README.md) - deployment and operating-system setup guides.
+
+For the underlying runtime model, start with the `@teqfw/github-flows`
+overview published with the dependency:
+
+- `node_modules/@teqfw/github-flows/docs/overview.md`
+
+## Quick Start
 
 Clone the repository and enter the project directory:
 
@@ -10,7 +35,13 @@ Clone the repository and enter the project directory:
 git clone https://github.com/flancer32/github-flows-app.git .
 ```
 
-Create a `.env` file from the provided template and adjust the values for your environment:
+Create a `.env` file from the provided template:
+
+```bash
+cp .env.example .env
+```
+
+Set the local runtime values:
 
 ```env
 HOST=127.0.0.1
@@ -19,8 +50,6 @@ WORKSPACE_ROOT=./var/work
 WEBHOOK_SECRET=replace-with-shared-secret
 ```
 
-The application redacts `webhookSecret` in bootstrap logs.
-
 Install dependencies and start the application:
 
 ```bash
@@ -28,112 +57,53 @@ npm i
 npm start
 ```
 
-## Web Server
+The GitHub webhook endpoint is:
 
-Run the application behind a web server and proxy only the GitHub webhook endpoint to the local service. Serve static operational files from the `web/` directory, and protect linked runtime log/config directories before exposing them.
-
-```apache
-<VirtualHost *:80>
-    ServerName example.com
-    RewriteEngine On
-    RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [R=301,L]
-</VirtualHost>
-
-<IfModule mod_ssl.c>
-<VirtualHost *:443>
-    ServerName example.com
-    ErrorLog ${APACHE_LOG_DIR}/example.com.error.log
-    CustomLog ${APACHE_LOG_DIR}/example.com.access.log combined
-
-    DocumentRoot /path/to/github-flows-app/web
-
-    <Directory /path/to/github-flows-app/web>
-        Options FollowSymLinks
-        AllowOverride All
-        Require all granted
-    </Directory>
-
-    ProxyPreserveHost On
-    ProxyPass        /webhooks/github http://127.0.0.1:5020/webhooks/github
-    ProxyPassReverse /webhooks/github http://127.0.0.1:5020/webhooks/github
-
-    SSLCertificateFile /path/to/fullchain.pem
-    SSLCertificateKeyFile /path/to/privkey.pem
-    Include /path/to/options-ssl-apache.conf
-</VirtualHost>
-</IfModule>
+```text
+/webhooks/github
 ```
 
-## System Service
+Configure GitHub to send webhooks to the public URL that proxies this path to
+the local application.
 
-Create a `systemd` unit for the application:
+## Runtime Workspace
 
-```ini
-[Unit]
-Description=GitHub Flows App
-After=network.target
+The application passes `WORKSPACE_ROOT` to `@teqfw/github-flows`.
 
-[Service]
-Type=simple
-User=appuser
-Group=appuser
-WorkingDirectory=/path/to/github-flows-app
-ExecStart=/bin/bash -c 'source /path/to/nvm.sh && npm run start'
-Restart=always
-RestartSec=5
-Environment=NODE_ENV=production
-StandardOutput=append:/path/to/github-flows-app/var/work/app.log
-StandardError=append:/path/to/github-flows-app/var/work/app.log
+The important runtime directories are:
 
-[Install]
-WantedBy=multi-user.target
+```text
+WORKSPACE_ROOT/
+  cfg/    profile fragments and prompts consumed by @teqfw/github-flows
+  log/    event archives, run logs, and observational indexes
 ```
 
-Reload `systemd`, then enable and start the service:
+Profile configuration under `cfg/` follows the runtime package model, not an
+application-specific model. Start with [docs/workspace.md](docs/workspace.md)
+and then read the runtime package profile documentation.
 
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable github-flows-app
-sudo systemctl start github-flows-app
-```
+## Application-Provided Trigger Attributes
 
-## Log Rotation
+The runtime package provides base trigger attributes such as `event`,
+`repository`, `action`, and optional `actorLogin`.
 
-Create a `logrotate` rule for the application log:
+This application additionally registers one host-side attribute provider. It
+adds factual attributes derived from the current webhook payload:
 
-```conf
-/path/to/github-flows-app/var/work/app.log {
-    daily
-    rotate 14
+- payload size flags: `sizeLess10K`, `sizeLess100K`, `sizeLess1M`, `sizeLess2M`
+- issue label event attributes: `issueLabelAdded`, `issueLabelRemoved`
 
-    missingok
-    notifempty
+Use [docs/trigger-attributes.md](docs/trigger-attributes.md) for the exact
+attribute contract and examples.
 
-    compress
-    delaycompress
+## Deployment
 
-    copytruncate
+Ubuntu deployment guides are grouped under [docs/setup/README.md](docs/setup/README.md).
 
-    create 0640 appuser appuser
+The usual order is:
 
-    su appuser appuser
-}
-```
-
-Test the configuration and force a rotation if needed:
-
-```bash
-sudo logrotate -d /etc/logrotate.d/github-flows-app
-sudo logrotate -f /etc/logrotate.d/github-flows-app
-```
-
-## Docker
-
-```bash
-docker build \
-  -f etc/docker/Dockerfile.codex \
-  --build-arg UID=$(id -u) \
-  --build-arg GID=$(id -g) \
-  -t github-flows-agent-codex:latest \
-  .
-```
+1. prepare the runtime user and Node.js environment;
+2. build the Codex agent Docker image;
+3. deploy and configure this application;
+4. configure Apache as the public HTTPS proxy;
+5. configure GitHub and Codex credentials for isolated agent runs.

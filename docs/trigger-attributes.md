@@ -1,0 +1,191 @@
+# Trigger Attributes
+
+- Path: `docs/trigger-attributes.md`
+- Version: `20260514`
+
+## Purpose
+
+This document describes attributes that may be used in `trigger` blocks when
+running `@teqfw/github-flows` through `@flancer32/github-flows-app`.
+
+The runtime package supplies base attributes.
+
+This application supplies additional host-provided attributes through the
+runtime package attribute-provider extension point.
+
+## Attribute Sources
+
+For one admitted GitHub event, trigger matching can use:
+
+| Source | Owner | Examples |
+| --- | --- | --- |
+| Base attributes | `@teqfw/github-flows` | `event`, `repository`, `action`, `actorLogin` |
+| Additional attributes | `@flancer32/github-flows-app` | `sizeLess100K`, `issueLabelAdded` |
+
+The application-provided attributes are factual values derived from the current
+webhook payload only. They do not grant execution permission and do not replace
+base attributes.
+
+Profile selection remains owned by `@teqfw/github-flows`.
+
+## Base Runtime Attributes
+
+The runtime package provides these base trigger attributes:
+
+| Attribute | Type | Meaning |
+| --- | --- | --- |
+| `event` | string | GitHub event name, such as `issues` or `pull_request` |
+| `repository` | string | Repository full name, such as `owner/repository` |
+| `action` | string | GitHub event action, such as `opened`, `labeled`, or `created` |
+| `actorLogin` | string | Initiating actor login when available from the admitted event |
+
+Example:
+
+```json
+{
+  "trigger": {
+    "repository": "owner/repository",
+    "event": "issues",
+    "action": "opened"
+  }
+}
+```
+
+For the full runtime package description, start with:
+
+```text
+node_modules/@teqfw/github-flows/docs/overview.md
+```
+
+Follow the documentation map in that package for the current base-attribute and
+profile-matching guide.
+
+## Application-Provided Size Attributes
+
+The application always returns payload-size flags:
+
+| Attribute | Type | Value is `true` when |
+| --- | --- | --- |
+| `sizeLess10K` | boolean | serialized current payload size is less than `10,000` bytes |
+| `sizeLess100K` | boolean | serialized current payload size is less than `100,000` bytes |
+| `sizeLess1M` | boolean | serialized current payload size is less than `1,000,000` bytes |
+| `sizeLess2M` | boolean | serialized current payload size is less than `2,000,000` bytes |
+
+Thresholds are strict. A payload of exactly `10,000` bytes makes
+`sizeLess10K` equal to `false`.
+
+The measurement is based on the full current webhook payload, not only issue
+body, pull-request body, comments, prompts, or profile files.
+
+Example:
+
+```json
+{
+  "trigger": {
+    "repository": "owner/repository",
+    "event": "issues",
+    "action": "opened",
+    "sizeLess100K": true
+  }
+}
+```
+
+Use size flags only as coarse routing facts for the current event. Do not use
+them as a replacement for agent-side validation or GitHub API checks.
+
+## Application-Provided Issue Label Attributes
+
+The application may return issue label attributes for `issues` events:
+
+| Attribute | Type | Present when |
+| --- | --- | --- |
+| `issueLabelAdded` | string | `event` is `issues`, payload action is `labeled`, and `payload.label.name` is a string |
+| `issueLabelRemoved` | string | `event` is `issues`, payload action is `unlabeled`, and `payload.label.name` is a string |
+
+The value is the exact label name from the webhook payload. Case, spacing, and
+punctuation are preserved.
+
+The application does not derive these attributes from the current full label
+list on the issue. It uses only the label object attached to the current
+`labeled` or `unlabeled` webhook event.
+
+Example for a label-added trigger:
+
+```json
+{
+  "trigger": {
+    "repository": "owner/repository",
+    "event": "issues",
+    "action": "labeled",
+    "issueLabelAdded": "needs-spec"
+  }
+}
+```
+
+Example for a label-removed trigger:
+
+```json
+{
+  "trigger": {
+    "repository": "owner/repository",
+    "event": "issues",
+    "action": "unlabeled",
+    "issueLabelRemoved": "needs-spec"
+  }
+}
+```
+
+These attributes are omitted for non-`issues` events, non-label issue actions,
+missing label objects, or non-string `label.name` values.
+
+## Recommended Trigger Shape
+
+Use base attributes first:
+
+```json
+{
+  "trigger": {
+    "repository": "owner/repository",
+    "event": "issues",
+    "action": "opened"
+  }
+}
+```
+
+Add application-provided attributes only when the base attributes are not
+specific enough:
+
+```json
+{
+  "trigger": {
+    "repository": "owner/repository",
+    "event": "issues",
+    "action": "labeled",
+    "issueLabelAdded": "adsm"
+  }
+}
+```
+
+Keep one profile focused on one event situation. If two label names or two size
+classes need different prompts or runtime settings, create separate profiles
+instead of embedding conditional logic in one prompt.
+
+## Boundary Rules
+
+Application-provided attributes:
+
+- belong only to the current webhook event;
+- are plain trigger-matching facts;
+- are not execution permission;
+- are not workflow state;
+- must not be treated as cross-event memory;
+- must not override `event`, `repository`, `action`, or `actorLogin`.
+
+For multi-step automation, design each stage as a separate GitHub event handled
+by runtime profile matching. Start with:
+
+```text
+node_modules/@teqfw/github-flows/docs/overview.md
+```
+
+Follow the runtime package documentation map for the current event-chain guide.
