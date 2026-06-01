@@ -59,6 +59,30 @@ export default class Github_Flows_App_Event_Attribute_Provider {
     };
 
     /**
+     * Derive issue-opened routing facts from the current webhook payload.
+     *
+     * @param {*} payload
+     * @param {*} eventModel
+     * @returns {object}
+     */
+    const buildIssueOpenedFlags = ({ eventModel, payload }) => {
+      if (!eventModel || typeof eventModel !== "object" || eventModel.event !== "issues") {
+        return {};
+      }
+      if (!payload || typeof payload !== "object" || payload.action !== "opened") {
+        return {};
+      }
+
+      const labels = payload.issue?.labels;
+      if (!Array.isArray(labels)) {
+        return { issueAuthorRequestedNoAgent: false };
+      }
+
+      const issueAuthorRequestedNoAgent = labels.some(label => label && typeof label === "object" && label.name === "adsm:no-agent");
+      return { issueAuthorRequestedNoAgent };
+    };
+
+    /**
      * Derive pull request event attributes from the current webhook payload.
      *
      * @param {*} payload
@@ -98,6 +122,7 @@ export default class Github_Flows_App_Event_Attribute_Provider {
       return {
         ...buildSizeFlags(sizeBytes),
         ...buildIssueLabelFlags({ eventModel, payload }),
+        ...buildIssueOpenedFlags({ eventModel, payload }),
         ...buildPullRequestFlags({ eventModel, payload }),
       };
     };

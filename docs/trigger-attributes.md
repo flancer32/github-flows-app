@@ -1,7 +1,7 @@
 # Trigger Attributes
 
 - Path: `docs/trigger-attributes.md`
-- Version: `20260514`
+- Version: `20260601`
 
 ## Purpose
 
@@ -20,7 +20,7 @@ For one admitted GitHub event, trigger matching can use:
 | Source | Owner | Examples |
 | --- | --- | --- |
 | Base attributes | `@teqfw/github-flows` | `event`, `repository`, `action`, `actorLogin` |
-| Additional attributes | `@flancer32/github-flows-app` | `sizeLess100K`, `issueLabelAdded`, `pullRequestMerged` |
+| Additional attributes | `@flancer32/github-flows-app` | `sizeLess100K`, `issueLabelAdded`, `issueAuthorRequestedNoAgent`, `pullRequestMerged` |
 
 The application-provided attributes are factual values derived from the current
 webhook payload only. They do not grant execution permission and do not replace
@@ -93,14 +93,15 @@ Example:
 Use size flags only as coarse routing facts for the current event. Do not use
 them as a replacement for agent-side validation or GitHub API checks.
 
-## Application-Provided Issue Label Attributes
+## Application-Provided Issue Attributes
 
-The application may return issue label attributes for `issues` events:
+The application may return issue attributes for `issues` events:
 
 | Attribute | Type | Present when |
 | --- | --- | --- |
 | `issueLabelAdded` | string | `event` is `issues`, payload action is `labeled`, and `payload.label.name` is a string |
 | `issueLabelRemoved` | string | `event` is `issues`, payload action is `unlabeled`, and `payload.label.name` is a string |
+| `issueAuthorRequestedNoAgent` | boolean | `event` is `issues`, payload action is `opened`; value is `true` when `payload.issue.labels` contains a label object whose `name` is exactly `adsm:no-agent`, otherwise `false` |
 
 The value is the exact label name from the webhook payload. Case, spacing, and
 punctuation are preserved.
@@ -108,6 +109,12 @@ punctuation are preserved.
 The application does not derive these attributes from the current full label
 list on the issue. It uses only the label object attached to the current
 `labeled` or `unlabeled` webhook event.
+
+`issueAuthorRequestedNoAgent` is a factual attribute derived from the current
+issue label set present in the `issues.opened` payload. It does not describe a
+host-side execution decision. Missing, empty, or malformed
+`payload.issue.labels` is treated as absence of the label and yields `false`
+within the `issues.opened` scope.
 
 Example for a label-added trigger:
 
@@ -135,8 +142,25 @@ Example for a label-removed trigger:
 }
 ```
 
-These attributes are omitted for non-`issues` events, non-label issue actions,
-missing label objects, or non-string `label.name` values.
+Example for an issue-opened trigger that excludes issues created with
+`adsm:no-agent`:
+
+```json
+{
+  "trigger": {
+    "repository": "owner/repository",
+    "event": "issues",
+    "action": "opened",
+    "issueAuthorRequestedNoAgent": false
+  }
+}
+```
+
+`issueLabelAdded` and `issueLabelRemoved` are omitted for non-`issues` events,
+non-label issue actions, missing label objects, or non-string `label.name`
+values.
+
+`issueAuthorRequestedNoAgent` is omitted outside `issues.opened`.
 
 ## Application-Provided Pull Request Attributes
 

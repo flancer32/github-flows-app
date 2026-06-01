@@ -266,6 +266,140 @@ test("Event attribute provider omits issue label attributes for non-issues event
   }
 });
 
+test("Event attribute provider returns issueAuthorRequestedNoAgent false for issues.opened without adsm:no-agent", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+  const cases = [
+    {
+      payload: {
+        action: "opened",
+        issue: {
+          labels: [],
+        },
+      },
+    },
+    {
+      payload: {
+        action: "opened",
+        issue: {
+          labels: [
+            {
+              name: "adsm:review",
+            },
+          ],
+        },
+      },
+    },
+  ];
+
+  for (const { payload } of cases) {
+    const result = await provider.getAttributes({ eventModel: issuesEventModel, payload });
+
+    assertSizeAttributesPresent(result);
+    assert.equal(result.issueAuthorRequestedNoAgent, false);
+    assertAttributeAbsent(result, "issueLabelAdded");
+    assertAttributeAbsent(result, "issueLabelRemoved");
+  }
+});
+
+test("Event attribute provider returns issueAuthorRequestedNoAgent true for issues.opened with adsm:no-agent", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+
+  const result = await provider.getAttributes({
+    eventModel: issuesEventModel,
+    payload: {
+      action: "opened",
+      issue: {
+        labels: [
+          {
+            name: "adsm:no-agent",
+          },
+          {
+            name: "adsm:review",
+          },
+        ],
+      },
+    },
+  });
+
+  assertSizeAttributesPresent(result);
+  assert.equal(result.issueAuthorRequestedNoAgent, true);
+  assertAttributeAbsent(result, "issueLabelAdded");
+  assertAttributeAbsent(result, "issueLabelRemoved");
+});
+
+test("Event attribute provider returns issueAuthorRequestedNoAgent false for missing, empty, null, or malformed issue labels", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+  const cases = [
+    {
+      action: "opened",
+      issue: {},
+    },
+    {
+      action: "opened",
+      issue: {
+        labels: null,
+      },
+    },
+    {
+      action: "opened",
+      issue: {
+        labels: [
+          {},
+          {
+            name: 123,
+          },
+        ],
+      },
+    },
+    {
+      action: "opened",
+      issue: {
+        labels: [],
+      },
+    },
+  ];
+
+  for (const payload of cases) {
+    const result = await provider.getAttributes({ eventModel: issuesEventModel, payload });
+
+    assertSizeAttributesPresent(result);
+    assert.equal(result.issueAuthorRequestedNoAgent, false);
+  }
+});
+
+test("Event attribute provider omits issueAuthorRequestedNoAgent for non-opened issues events", async () => {
+  const provider = new Github_Flows_App_Event_Attribute_Provider({});
+  const cases = [
+    {
+      action: "labeled",
+      issue: {
+        labels: [
+          {
+            name: "adsm:no-agent",
+          },
+        ],
+      },
+    },
+    {
+      action: "unlabeled",
+      issue: {
+        labels: [
+          {
+            name: "adsm:no-agent",
+          },
+        ],
+      },
+    },
+  ];
+
+  for (const payload of cases) {
+    const result = await provider.getAttributes({ eventModel: issuesEventModel, payload });
+
+    assertSizeOnlyAttributeShape(result);
+    assertAttributeAbsent(result, "issueAuthorRequestedNoAgent");
+  }
+});
+
 test("Event attribute provider preserves exact added label string", async () => {
   const provider = new Github_Flows_App_Event_Attribute_Provider({});
 
@@ -322,9 +456,10 @@ test("Event attribute provider omits label attributes for non-label issue action
     },
   });
 
-  assertSizeOnlyAttributeShape(result);
+  assertSizeAttributesPresent(result);
   assertAttributeAbsent(result, "issueLabelAdded");
   assertAttributeAbsent(result, "issueLabelRemoved");
+  assert.equal(result.issueAuthorRequestedNoAgent, false);
   assertAttributeAbsent(result, "issueAddedLabel");
 });
 
@@ -501,9 +636,10 @@ test("Event attribute provider does not derive label attributes from issue label
     },
   });
 
-  assertSizeOnlyAttributeShape(result);
+  assertSizeAttributesPresent(result);
   assertAttributeAbsent(result, "issueLabelAdded");
   assertAttributeAbsent(result, "issueLabelRemoved");
+  assert.equal(result.issueAuthorRequestedNoAgent, false);
 });
 
 test("Event attribute provider returns pullRequestLabelAdded for pull_request.labeled payload", async () => {
