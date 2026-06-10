@@ -30,6 +30,7 @@ test("Config loader reads env files and maps runtime params", async () => {
   const runtime = Object.freeze({
     httpHost: "0.0.0.0",
     httpPort: 8080,
+    logRetentionDays: 30,
     workspaceRoot: "/tmp/work",
     webhookSecret: "secret",
   });
@@ -48,12 +49,13 @@ test("Config loader reads env files and maps runtime params", async () => {
   });
   const dir = await mkdtemp(path.join(os.tmpdir(), "github-flows-app-"));
   try {
-    await writeFile(path.join(dir, ".env"), "HOST=0.0.0.0\nPORT=8080\nWORKSPACE_ROOT=/tmp/work\nWEBHOOK_SECRET=secret\n");
+    await writeFile(path.join(dir, ".env"), "HOST=0.0.0.0\nPORT=8080\nLOG_RETENTION_DAYS=30\nWORKSPACE_ROOT=/tmp/work\nWEBHOOK_SECRET=secret\n");
     assert.equal(await loader.load({ projectRoot: dir }), runtime);
     assert.deepEqual(calls, [
       ["configure", {
         httpHost: "0.0.0.0",
         httpPort: 8080,
+        logRetentionDays: 30,
         workspaceRoot: "/tmp/work",
         webhookSecret: "secret",
       }],
@@ -86,6 +88,7 @@ test("Config loader falls back to code defaults without env file", async () => {
     assert.deepEqual(await loader.load({ projectRoot: dir }), {
       httpHost: "127.0.0.1",
       httpPort: 3000,
+      logRetentionDays: undefined,
       workspaceRoot: `${dir}/var/work`,
       webhookSecret: "replace-with-shared-secret",
     });
@@ -93,6 +96,7 @@ test("Config loader falls back to code defaults without env file", async () => {
       ["configure", {
         httpHost: "127.0.0.1",
         httpPort: 3000,
+        logRetentionDays: undefined,
         workspaceRoot: `${dir}/var/work`,
         webhookSecret: "replace-with-shared-secret",
       }],
@@ -115,6 +119,7 @@ test("Config loader parses quoted env values and ignores malformed lines", async
         "MALFORMED",
         "HOST='0.0.0.0'",
         'PORT="8080"',
+        "LOG_RETENTION_DAYS='30'",
         "WORKSPACE_ROOT='/tmp/quoted work'",
         'WEBHOOK_SECRET="quoted-secret"',
         "",
@@ -124,6 +129,7 @@ test("Config loader parses quoted env values and ignores malformed lines", async
     assert.deepEqual(await loader.load({ projectRoot: dir }), {
       httpHost: "0.0.0.0",
       httpPort: 8080,
+      logRetentionDays: 30,
       workspaceRoot: "/tmp/quoted work",
       webhookSecret: "quoted-secret",
     });
@@ -131,6 +137,7 @@ test("Config loader parses quoted env values and ignores malformed lines", async
       ["configure", {
         httpHost: "0.0.0.0",
         httpPort: 8080,
+        logRetentionDays: 30,
         workspaceRoot: "/tmp/quoted work",
         webhookSecret: "quoted-secret",
       }],
@@ -176,6 +183,39 @@ test("Config loader rejects empty required values", async () => {
         expectedError,
       );
       assert.deepEqual(calls, []);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  }
+});
+
+test("Config loader disables retention cleanup for invalid LOG_RETENTION_DAYS", async () => {
+  const cases = ["abc", "0", "-1", "  "];
+
+  for (const value of cases) {
+    const calls = [];
+    const loader = createLoader({ calls });
+    const dir = await mkdtemp(path.join(os.tmpdir(), "github-flows-app-"));
+    try {
+      await writeFile(path.join(dir, ".env"), `LOG_RETENTION_DAYS=${value}\nWEBHOOK_SECRET=secret\n`);
+
+      assert.deepEqual(await loader.load({ projectRoot: dir }), {
+        httpHost: "127.0.0.1",
+        httpPort: 3000,
+        logRetentionDays: undefined,
+        workspaceRoot: `${dir}/var/work`,
+        webhookSecret: "secret",
+      });
+      assert.deepEqual(calls, [
+        ["configure", {
+          httpHost: "127.0.0.1",
+          httpPort: 3000,
+          logRetentionDays: undefined,
+          workspaceRoot: `${dir}/var/work`,
+          webhookSecret: "secret",
+        }],
+        ["freeze"],
+      ]);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

@@ -14,6 +14,7 @@ The application reads `WORKSPACE_ROOT` from `.env`:
 
 ```env
 WORKSPACE_ROOT=./var/work
+LOG_RETENTION_DAYS=30
 ```
 
 The path is passed to `@teqfw/github-flows` as the runtime `workspaceRoot`.
@@ -89,6 +90,15 @@ The application may also write a process log such as:
 ```text
 WORKSPACE_ROOT/app.log
 ```
+
+When `LOG_RETENTION_DAYS` is set, the host application performs archival log
+cleanup once during application startup and then repeats the cleanup every
+hour while the process remains active.
+
+Cleanup applies to canonical archived event directories under
+`WORKSPACE_ROOT/log/run/`. Any derived navigation links under
+`WORKSPACE_ROOT/log/index/` that point to removed archived directories must be
+removed or refreshed so the inspection view remains consistent.
 
 Use process log rotation for `app.log`. Do not treat runtime event archives as
 application-owned state.

@@ -17,6 +17,9 @@ export class Data {
   /** @type {string|undefined} */
   workspaceRoot;
 
+  /** @type {number|undefined} */
+  logRetentionDays;
+
   /** @type {string|undefined} */
   webhookSecret;
 }
@@ -58,6 +61,7 @@ export class Factory {
       if (params.httpHost !== undefined && cfg.httpHost === undefined) cfg.httpHost = params.httpHost;
       if (params.httpPort !== undefined && cfg.httpPort === undefined) cfg.httpPort = params.httpPort;
       if (params.workspaceRoot !== undefined && cfg.workspaceRoot === undefined) cfg.workspaceRoot = params.workspaceRoot;
+      if (params.logRetentionDays !== undefined && cfg.logRetentionDays === undefined) cfg.logRetentionDays = params.logRetentionDays;
       if (params.webhookSecret !== undefined && cfg.webhookSecret === undefined) cfg.webhookSecret = params.webhookSecret;
     };
     this.freeze = function () {

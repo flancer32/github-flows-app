@@ -21,6 +21,10 @@ const createBootstrapDeps = ({ attributeProvider, onSetProvider = () => {} }) =>
     },
   },
   appEventAttributeProvider: attributeProvider,
+  appLogRetentionScheduler: {
+    async start() {},
+    async stop() {},
+  },
   appWebPipelineEngine: {
     addHandler() {},
   },

@@ -10,6 +10,7 @@ export default class Github_Flows_App_Bootstrap {
    * @param {Github_Flows_App_Config_Loader} deps.appCfgRuntimeLoader
    * @param {Github_Flows_Event_Attribute_Provider_Holder} deps.appEventAttributeProviderHolder
    * @param {Github_Flows_App_Event_Attribute_Provider} deps.appEventAttributeProvider
+   * @param {Github_Flows_App_Log_Retention_Scheduler} deps.appLogRetentionScheduler
    * @param {Github_Flows_Web_PipelineEngine} deps.appWebPipelineEngine
    * @param {Github_Flows_Web_Handler_Static} deps.appWebStaticHandler
    * @param {Github_Flows_Web_Dto_Source__Factory} deps.appWebSourceFactory
@@ -20,6 +21,7 @@ export default class Github_Flows_App_Bootstrap {
     appCfgRuntimeLoader,
     appEventAttributeProviderHolder,
     appEventAttributeProvider,
+    appLogRetentionScheduler,
     appWebPipelineEngine,
     appWebStaticHandler,
     appWebSourceFactory,
@@ -109,6 +111,15 @@ export default class Github_Flows_App_Bootstrap {
       appWebPipelineEngine.addHandler(appWebStaticHandler);
       trace("pipeline:handler-registered", { handler: appWebStaticHandler.constructor?.name });
 
+      await appLogRetentionScheduler.start({
+        logRetentionDays: runtimeParams.logRetentionDays,
+        workspaceRoot: runtimeParams.workspaceRoot,
+      });
+      trace("log-retention:scheduler-started", {
+        enabled: Number.isInteger(runtimeParams.logRetentionDays) && runtimeParams.logRetentionDays >= 1,
+        logRetentionDays: runtimeParams.logRetentionDays,
+      });
+
       trace("server:start");
       await appWebServer.start();
       started = true;
@@ -121,10 +132,12 @@ export default class Github_Flows_App_Bootstrap {
       trace("stop:requested", { started });
       if (!started) {
         trace("stop:skipped");
+        await appLogRetentionScheduler.stop();
         completeRun(0);
         return;
       }
 
+      await appLogRetentionScheduler.stop();
       trace("server:stopping");
       await appWebServer.stop();
       started = false;
@@ -138,6 +151,7 @@ export const __deps__ = Object.freeze({
   appCfgRuntimeLoader: "Github_Flows_App_Config_Loader$",
   appEventAttributeProviderHolder: "Github_Flows_Event_Attribute_Provider_Holder$",
   appEventAttributeProvider: "Github_Flows_App_Event_Attribute_Provider$",
+  appLogRetentionScheduler: "Github_Flows_App_Log_Retention_Scheduler$",
   appWebPipelineEngine: "Fl32_Web_Back_PipelineEngine$",
   appWebStaticHandler: "Fl32_Web_Back_Handler_Static$",
   appWebSourceFactory: "Fl32_Web_Back_Dto_Source__Factory$",

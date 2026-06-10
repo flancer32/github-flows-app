@@ -9,6 +9,7 @@ test("Config runtime exposes defaults and becomes immutable after freeze", () =>
     httpHost: "127.0.0.1",
     httpPort: 3000,
     workspaceRoot: "/tmp/work",
+    logRetentionDays: 7,
     webhookSecret: "secret",
   });
   const factory = new Factory({
@@ -28,6 +29,7 @@ test("Config runtime exposes defaults and becomes immutable after freeze", () =>
 
   factory.configure({
     workspaceRoot: "/tmp/work",
+    logRetentionDays: 7,
     webhookSecret: "secret",
   });
   const frozenRuntime = factory.freeze();
@@ -36,6 +38,7 @@ test("Config runtime exposes defaults and becomes immutable after freeze", () =>
   assert.equal(runtime.httpHost, "127.0.0.1");
   assert.equal(runtime.httpPort, 3000);
   assert.equal(runtime.workspaceRoot, "/tmp/work");
+  assert.equal(runtime.logRetentionDays, 7);
   assert.equal(runtime.webhookSecret, "secret");
   assert.equal(runtime.githubFlowsRuntime, githubFlowsRuntime);
   assert.deepEqual(calls, [

@@ -53,6 +53,14 @@ const createBootstrapDeps = ({ calls, holder, provider }) => {
     },
     appEventAttributeProvider: provider,
     appEventAttributeProviderHolder: holder,
+    appLogRetentionScheduler: {
+      async start(params) {
+        calls.push(["scheduler:start", params]);
+      },
+      async stop() {
+        calls.push(["scheduler:stop"]);
+      },
+    },
     appWebPipelineEngine: {
       addHandler(handler) {
         calls.push(["pipeline:addHandler", handler]);
@@ -118,6 +126,10 @@ test("Bootstrap links real provider holder through DI and registers webhook befo
         }],
       }],
       ["pipeline:addHandler", deps.staticHandler],
+      ["scheduler:start", {
+        logRetentionDays: undefined,
+        workspaceRoot: `${projectRoot}/var/work`,
+      }],
       ["server:start"],
     ]);
 
@@ -131,5 +143,6 @@ test("Bootstrap links real provider holder through DI and registers webhook befo
   }
 
   assert.equal(exitCode, 0);
+  assert.deepEqual(calls.at(-2), ["scheduler:stop"]);
   assert.deepEqual(calls.at(-1), ["server:stop"]);
 });

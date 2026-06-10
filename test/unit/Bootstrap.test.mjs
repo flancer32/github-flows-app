@@ -15,6 +15,14 @@ test("App exposes run and stop methods", async () => {
       calls.push(["init", params]);
     },
   };
+  const logRetentionScheduler = {
+    async start(params) {
+      calls.push(["scheduler:start", params]);
+    },
+    async stop() {
+      calls.push(["scheduler:stop"]);
+    },
+  };
   const webhookHandler = {};
   const app = new Github_Flows_App_Bootstrap({
     appCfgRuntimeLoader: {
@@ -34,6 +42,7 @@ test("App exposes run and stop methods", async () => {
       },
     },
     appEventAttributeProvider: attributeProvider,
+    appLogRetentionScheduler: logRetentionScheduler,
     appWebServer: {
       async start() {
         calls.push(["start"]);
@@ -88,12 +97,17 @@ test("App exposes run and stop methods", async () => {
       }],
     }],
     ["addHandler", staticHandler],
+    ["scheduler:start", {
+      logRetentionDays: undefined,
+      workspaceRoot: "/tmp/project/var/work",
+    }],
     ["start"],
   ]);
 
   await app.stop();
   const exitCode = await runPromise;
   assert.equal(exitCode, 0);
+  assert.deepEqual(calls.at(-2), ["scheduler:stop"]);
   assert.deepEqual(calls.at(-1), ["stop"]);
 });
 
@@ -123,6 +137,14 @@ test("App redacts webhookSecret in bootstrap runtime trace", async () => {
         },
       },
       appEventAttributeProvider: {},
+      appLogRetentionScheduler: {
+        async start(params) {
+          calls.push(["scheduler:start", params]);
+        },
+        async stop() {
+          calls.push(["scheduler:stop"]);
+        },
+      },
       appWebServer: {
         async start() {
           calls.push(["start"]);

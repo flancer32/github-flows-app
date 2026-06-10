@@ -47,6 +47,7 @@ Set the local runtime values:
 HOST=127.0.0.1
 PORT=5020
 WORKSPACE_ROOT=./var/work
+LOG_RETENTION_DAYS=30
 WEBHOOK_SECRET=replace-with-shared-secret
 ```
 
@@ -69,6 +70,9 @@ the local application.
 ## Runtime Workspace
 
 The application passes `WORKSPACE_ROOT` to `@teqfw/github-flows`.
+
+When `LOG_RETENTION_DAYS` is configured, the host application runs archival log
+cleanup once during startup and then repeats it every hour.
 
 The important runtime directories are:
 

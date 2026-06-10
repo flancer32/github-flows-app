@@ -69,6 +69,23 @@ export default class Github_Flows_App_Config_Loader {
     };
 
     /**
+     * Parse a retention-days value.
+     *
+     * @param {unknown} value
+     * @returns {number|undefined}
+     */
+    const parseRetentionDays = value => {
+      if (typeof value !== "string" || value.trim().length === 0) {
+        return undefined;
+      }
+      const result = Number.parseInt(value, 10);
+      if (!Number.isInteger(result) || result < 1 || String(result) !== value.trim()) {
+        return undefined;
+      }
+      return result;
+    };
+
+    /**
      * Normalize environment values into runtime configuration.
      *
      * @param {Record<string, string>} env
@@ -76,6 +93,7 @@ export default class Github_Flows_App_Config_Loader {
      * @returns {{
      *   httpHost: string,
      *   httpPort: number,
+     *   logRetentionDays: number|undefined,
      *   workspaceRoot: string,
      *   webhookSecret: string,
      * }}
@@ -84,11 +102,13 @@ export default class Github_Flows_App_Config_Loader {
       const cfg = {
         httpHost: "127.0.0.1",
         httpPort: 3000,
+        logRetentionDays: undefined,
         workspaceRoot: `${projectRoot}/var/work`,
         webhookSecret: "replace-with-shared-secret",
       };
       if (env.HOST !== undefined) cfg.httpHost = requireNonEmptyString("HOST", env.HOST);
       if (env.PORT !== undefined) cfg.httpPort = parsePort(env.PORT);
+      if (env.LOG_RETENTION_DAYS !== undefined) cfg.logRetentionDays = parseRetentionDays(env.LOG_RETENTION_DAYS);
       if (env.WORKSPACE_ROOT !== undefined) {
         cfg.workspaceRoot = requireNonEmptyString("WORKSPACE_ROOT", env.WORKSPACE_ROOT);
       }
