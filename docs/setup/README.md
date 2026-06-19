@@ -37,7 +37,8 @@ The runtime package still owns:
 - event admission;
 - trigger matching;
 - profile selection;
-- execution workspace creation;
+- execution workspace creation and per-run launch preparation;
+- `hostScript` and `setupScript` ordering;
 - agent launch semantics.
 
 For runtime profile configuration, start with:

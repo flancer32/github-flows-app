@@ -102,6 +102,11 @@ GitHub Flows should mount a per-run workspace into the container at:
 /workspace
 ```
 
+In the current runtime model, host-side preparation may happen before the
+container is created through a runtime-owned `hostScript`. The resulting mounts
+or environment values are still part of runtime profile execution, not Docker
+image behavior.
+
 Example manual check:
 
 ```bash
@@ -122,7 +127,11 @@ cat ./var/work/test-run/check.txt
 
 ## Runtime Restrictions
 
-The container should receive only the per-run workspace and the explicit credentials required by the selected launch/profile configuration.
+The container should receive only the per-run workspace and the explicit
+credentials required by the selected launch/profile configuration.
+
+Prefer execution-scoped mounts produced for one run over broad long-lived host
+directory mounts.
 
 Do not mount:
 
@@ -134,6 +143,9 @@ Do not mount:
 
 Do not run the agent container with privileged host access.
 
+If a profile prepares a temporary token file on the host, mount only that file
+read-only and clean it up after the run.
+
 ## Result
 
 After this setup:
@@ -143,3 +155,5 @@ After this setup:
 - the container runs as non-root user `node`;
 - `/workspace` is the container working directory;
 - GitHub Flows launch/profile configuration remains responsible for the runtime command, mounts, environment, and credentials.
+- host-side pre-launch preparation remains outside the image and inside the
+  runtime-owned profile execution model.
