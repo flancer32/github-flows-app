@@ -23,6 +23,11 @@ The application does not own the internal runtime meaning of this directory. It
 only supplies the location and may expose selected subdirectories through the
 read-only static surface.
 
+When the runtime uses host-side `hostScript`, the host may also place
+execution-scoped helper artifacts under a run-local workspace location before
+container launch. Those artifacts remain temporary runtime support data, not
+host-owned durable state.
+
 ## Recommended Layout
 
 For a local deployment, the workspace normally contains:
