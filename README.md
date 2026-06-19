@@ -8,6 +8,14 @@ registers the application-provided event attribute provider, serves the fixed
 GitHub webhook ingress from the runtime package, and exposes a read-only static
 operational surface from `web/`.
 
+In the current runtime model, startup preparation is split across two
+environments:
+
+- `hostScript` prepares host-local and execution-scoped inputs before the
+  agent container starts;
+- `setupScript` runs inside the launched container and finishes
+  container-local startup checks.
+
 It does not define workflow semantics. Event admission, trigger matching,
 profile selection, execution context creation, and agent startup semantics are
 owned by `@teqfw/github-flows`.
@@ -85,6 +93,11 @@ WORKSPACE_ROOT/
 Profile configuration under `cfg/` follows the runtime package model, not an
 application-specific model. Start with [docs/workspace.md](docs/workspace.md)
 and then read the runtime package profile documentation.
+
+Long-lived credentials must remain outside `WORKSPACE_ROOT`. A host-side
+`hostScript` may materialize temporary execution-scoped files for one selected
+run, but those artifacts should stay narrow in scope and be cleaned up after
+the run.
 
 ## Application-Provided Trigger Attributes
 
