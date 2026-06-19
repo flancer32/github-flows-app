@@ -260,7 +260,9 @@ In the newer runtime model, prefer splitting host-side and container-side work:
 
 This profile launches Codex through `bash -lc`, uses `hostScript` to prepare an
 execution-scoped token file on the host, uses `setupScript` for an in-container
-sanity check, then reads the mounted token and starts Codex.
+sanity check, then reads the mounted token and starts Codex. The bind-mount
+`src` value remains a host path, even though the destination is inside the
+container.
 
 ```json
 {
@@ -287,7 +289,7 @@ sanity check, then reads the mounted token and starts Codex.
     },
     "runtime": {
       "image": "github-flows-agent-codex:latest",
-      "hostScript": "set -euo pipefail; exec_root=\"$(pwd)/tmp/gh-auth/${EVENT_ID}\"; rm -rf \"$exec_root\"; mkdir -p \"$exec_root\"; install -m 600 /home/user/.secrets/gh-token \"$exec_root/gh-token\"",
+      "hostScript": "set -euo pipefail; exec_root=\"/home/user/app/github-flows/var/work/tmp/gh-auth/${EVENT_ID}\"; rm -rf \"$exec_root\"; mkdir -p \"$exec_root\"; install -m 600 /home/user/.secrets/gh-token \"$exec_root/gh-token\"",
       "setupScript": "test -d repo && test -r /run/secrets/gh-token",
       "timeoutSec": 1800,
       "env": {
@@ -298,7 +300,7 @@ sanity check, then reads the mounted token and starts Codex.
         "--mount",
         "type=bind,src=/home/user/.secrets/codex,dst=/home/user/.codex",
         "--mount",
-        "type=bind,src=/workspace/tmp/gh-auth/${EVENT_ID}/gh-token,dst=/run/secrets/gh-token,readonly"
+        "type=bind,src=/home/user/app/github-flows/var/work/tmp/gh-auth/${EVENT_ID}/gh-token,dst=/run/secrets/gh-token,readonly"
       ]
     }
   }
