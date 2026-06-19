@@ -29,6 +29,8 @@ execution.
 
 The application is intentionally thin. It does not define workflow behavior,
 agent behavior, profile matching rules, event sequencing, or execution policy.
+It also does not reinterpret runtime launch steps such as `hostScript` and
+`setupScript`.
 
 ## Dependency Hierarchy
 
@@ -50,6 +52,16 @@ profile selection and isolated execution.
 Profile fragments under `workspaceRoot/cfg/` document the site-specific runtime
 configuration. They are not application configuration; they are consumed by
 `@teqfw/github-flows`.
+
+In the current runtime model, a selected profile may use:
+
+- `hostScript` for host-side pre-launch preparation such as generating
+  execution-scoped files or deciding which explicit mounts/env values should be
+  supplied to one container run;
+- `setupScript` for container-side startup checks that run after the container
+  is created.
+
+This application hosts that runtime model but does not redefine it.
 
 ## Application Surfaces
 
@@ -82,6 +94,11 @@ Runtime profile configuration is stored under:
 WORKSPACE_ROOT/cfg/
 ```
 
+Use `.env` for long-lived host service configuration only.
+
+Use runtime profiles for launch-time behavior such as `hostScript`,
+`setupScript`, explicit container mounts, and execution-scoped environment.
+
 Use application documentation for process, deployment, workspace, and
 application-provided trigger attributes.
 
@@ -110,5 +127,9 @@ runtime package documentation map from there.
 Use this app to host the runtime.
 
 Use `@teqfw/github-flows` profiles to describe event-to-execution routing.
+
+Use runtime `hostScript` only for pre-launch preparation needed by one selected
+execution. Keep application startup and service management outside profile
+semantics.
 
 Use GitHub repository events to connect multiple automation stages.

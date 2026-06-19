@@ -99,6 +99,7 @@ Create the runtime workspace directories:
 cd /home/user/app/github-flows
 
 mkdir -p ./var/work
+mkdir -p ./var/work/tmp
 mkdir -p ./var/work/log
 mkdir -p ./var/work/cfg
 ```
@@ -109,6 +110,10 @@ Create the application log file under the runtime user:
 touch ./var/work/app.log
 chmod 640 ./var/work/app.log
 ```
+
+`./var/work/tmp` is reserved for short-lived execution artifacts when a runtime
+profile uses host-side pre-launch preparation. Do not treat it as a long-lived
+secret store.
 
 ## Create Runtime Links
 
@@ -201,7 +206,13 @@ Environment=NODE_ENV=production
 WantedBy=multi-user.target
 ```
 
-The service does not use `EnvironmentFile`. Runtime configuration is loaded by the application from its local `.env` file.
+The service does not use `EnvironmentFile`. Runtime configuration is loaded by
+the application from its local `.env` file.
+
+The service is responsible only for keeping the host application running.
+Per-execution launch behavior such as `hostScript`, container mounts, generated
+token files, and `setupScript` stays in runtime profile configuration under
+`WORKSPACE_ROOT/cfg/`.
 
 The log redirection is placed inside `ExecStart` so that the log file is opened by the process running under `user`. This avoids creating the log file as `root`, which can happen when `StandardOutput=append:` is used by `systemd`.
 

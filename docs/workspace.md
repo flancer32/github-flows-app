@@ -35,12 +35,18 @@ For a local deployment, the workspace normally contains:
 ```text
 var/work/
   cfg/
+  tmp/
   log/
   app.log
 ```
 
 `cfg/` contains profile fragments and prompts consumed by
 `@teqfw/github-flows`.
+
+`tmp/` is a recommended host-managed area for execution-scoped temporary files
+such as generated token files or other short-lived artifacts prepared before a
+container run. Runtime launch logic may use it, but long-lived credentials do
+not belong there.
 
 `log/` contains runtime-produced event archives and observational indexes.
 
@@ -79,6 +85,14 @@ node_modules/@teqfw/github-flows/docs/overview.md
 
 Follow the documentation map in that package for the current profile and trigger
 guides.
+
+When a profile uses `hostScript`, keep its outputs execution-scoped:
+
+- write generated files into a temporary area under `WORKSPACE_ROOT` or another
+  host-managed non-public path;
+- mount only the specific file or directory needed by that one execution;
+- remove or overwrite the artifact after the run according to the runtime
+  package behavior or the surrounding operational policy.
 
 ## Logs
 
@@ -133,13 +147,9 @@ per-run files. Store GitHub tokens, Codex auth state, and other long-lived
 secrets outside the workspace and mount them into agent containers only when a
 selected profile requires them.
 
-If host-side preparation materializes execution-scoped files under the
-workspace, treat them as temporary and least-privilege by default:
-
-- generate them only for the selected run;
-- expose only the minimum content required by that run;
-- avoid placing them under long-lived public or operationally indexed paths;
-- remove them during normal host-side cleanup after the run completes.
+If a selected profile needs a token file inside the container, prefer an
+execution-scoped file generated during `hostScript` over a long-lived secret
+stored directly under `WORKSPACE_ROOT`.
 
 Use [setup/ubuntu/auth.md](setup/ubuntu/auth.md) for the credential layout used
 by the provided Codex agent image.

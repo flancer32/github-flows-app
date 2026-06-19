@@ -28,6 +28,7 @@ The runtime library owns:
 - admitted-event model creation;
 - package-owned base trigger attributes;
 - profile discovery under `workspaceRoot/cfg/`;
+- profile-owned `hostScript` and `setupScript` semantics;
 - profile matching and selection;
 - execution context creation;
 - isolated agent launch.
@@ -90,9 +91,20 @@ WORKSPACE_ROOT/cfg/
 The application passes `WORKSPACE_ROOT` to the runtime package. It does not
 interpret `profile.json` semantically and does not select profiles.
 
-That means this repository does not need application code changes to adopt the
-host-side preparation split. The change is in host/runtime integration guidance
-and in the profile model owned by the runtime library.
+When a runtime profile defines both `hostScript` and `setupScript`, the
+application boundary remains the same:
+
+- the host application supplies process availability, filesystem access, and
+  whatever host environment the runtime needs to execute a launch;
+- `@teqfw/github-flows` owns when a profile runs, whether `hostScript` runs,
+  how its outputs are attached to one execution, and when `setupScript` runs
+  inside the container;
+- the host application does not become a workflow engine or a second profile
+  interpreter.
+
+Execution-scoped files such as generated token files may be prepared before
+container start, but this preparation still belongs to runtime-owned profile
+execution, not to application-owned `.env` configuration.
 
 ## Attribute Provider Boundary
 
@@ -134,6 +146,7 @@ This application is not:
 
 - a workflow engine;
 - a profile selection layer;
+- a host-side launch-policy engine;
 - a queue;
 - a retry coordinator;
 - a cross-event state store;

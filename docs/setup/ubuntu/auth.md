@@ -61,6 +61,10 @@ Inside the container, only selected run inputs should appear:
 /workspace                 per-run workspace
 ```
 
+Before the container starts, a selected runtime profile may also create
+execution-scoped files on the host through `hostScript`. Those files should be
+mounted only into the run that needs them.
+
 ## GitHub Account Access
 
 The GitHub account used by the agent must have access to the target repository.
@@ -244,7 +248,7 @@ The selected model and Codex settings are stored in the mounted Codex auth/confi
 
 ## Profile Credential Configuration
 
-A profile can mount both credential sources into the container:
+A profile can mount both long-lived credential sources into the container:
 
 ```json
 {
@@ -269,11 +273,21 @@ The host-side preparation step is responsible for deciding what
 `GH_TOKEN_FILE` points to for the selected run. The container command must then
 read `GH_TOKEN_FILE` and export `GH_TOKEN` before starting Codex.
 
+In the newer runtime model, prefer splitting host-side and container-side work:
+
+- `hostScript` prepares execution-scoped artifacts on the host, such as a
+  copied token file under a run-specific temporary directory;
+- `setupScript` performs lightweight container checks after the mounts are in
+  place;
+- the execution command exports `GH_TOKEN` and starts Codex.
+
 ## Profile Example
 
-This profile launches Codex through `bash -lc`, reads the GitHub token from a
-host-prepared `/run/secrets/gh-token`, exports `GH_TOKEN` and `GITHUB_TOKEN`,
-and then starts Codex.
+This profile launches Codex through `bash -lc`, uses `hostScript` to prepare an
+execution-scoped token file on the host, uses `setupScript` for an in-container
+sanity check, then reads the mounted token and starts Codex. The bind-mount
+`src` value remains a host path, even though the destination is inside the
+container.
 
 ```json
 {
@@ -300,7 +314,8 @@ and then starts Codex.
     },
     "runtime": {
       "image": "github-flows-agent-codex:latest",
-      "setupScript": "test -d repo",
+      "hostScript": "set -euo pipefail; exec_root=\"/home/user/app/github-flows/var/work/tmp/gh-auth/${EVENT_ID}\"; rm -rf \"$exec_root\"; mkdir -p \"$exec_root\"; install -m 600 /home/user/.secrets/gh-token \"$exec_root/gh-token\"",
+      "setupScript": "test -d repo && test -r /run/secrets/gh-token",
       "timeoutSec": 1800,
       "env": {
         "LOG_LEVEL": "info",
@@ -310,12 +325,21 @@ and then starts Codex.
         "--mount",
         "type=bind,src=/home/user/.secrets/codex,dst=/home/user/.codex",
         "--mount",
-        "type=bind,src=/home/user/.secrets/gh-token,dst=/run/secrets/gh-token,readonly"
+        "type=bind,src=/home/user/app/github-flows/var/work/tmp/gh-auth/${EVENT_ID}/gh-token,dst=/run/secrets/gh-token,readonly"
       ]
     }
   }
 }
 ```
+
+The exact placeholder syntax for values such as `${EVENT_ID}` depends on the
+runtime package version and its profile-templating model. The important
+repository-level rule is the split of responsibilities:
+
+- `hostScript` prepares a run-specific file on the host;
+- `setupScript` validates the mounted result in the container;
+- the long-lived source secret stays outside the workspace-visible runtime
+  state.
 
 ## Manual Container Check
 
@@ -384,6 +408,10 @@ If host-side preparation creates execution-scoped files for a selected run,
 clean them up after the run completes and keep them out of long-lived indexed
 or public paths.
 
+If `hostScript` creates a temporary credential file under a run-specific
+workspace directory, remove it after the run and do not reuse it across
+executions.
+
 ## Result
 
 After this setup:
@@ -395,6 +423,8 @@ After this setup:
 - the Codex auth state is stored in `/home/user/.secrets/codex/`;
 - GitHub CLI receives `GH_TOKEN` and `GITHUB_TOKEN` from the mounted token file;
 - Codex CLI uses the mounted Codex auth state from `/home/user/.codex`;
+- a selected profile may create an execution-scoped token copy for one run
+  without moving the long-lived source secret into the workspace;
 - profile execution can authenticate to GitHub without mounting the host home directory;
 - profile execution can authenticate Codex without storing Codex credentials in the image;
 - credentials are mounted into the container only at runtime;
