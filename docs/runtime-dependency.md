@@ -32,6 +32,11 @@ The runtime library owns:
 - execution context creation;
 - isolated agent launch.
 
+Within that runtime-owned launch model, startup preparation is split into:
+
+- `hostScript` for host-side pre-launch preparation;
+- `setupScript` for container-side startup preparation.
+
 ## Startup Relationship
 
 At startup, the application:
@@ -51,6 +56,23 @@ The webhook path is fixed by the runtime package:
 
 The application must not register a competing handler for this path.
 
+## Host Preparation Boundary
+
+Host-side preparation may create execution-scoped inputs before a selected
+container starts. Typical examples are:
+
+- materializing a mounted cognitive context snapshot;
+- generating short-lived token files derived from host-local secrets;
+- creating run-local helper files inside the selected execution workspace.
+
+This host-side preparation does not make `github-flows-app` a workflow engine.
+The host supplies infrastructure and inputs, while `@teqfw/github-flows`
+remains the semantic owner of profile selection, execution permission, and
+agent launch behavior.
+
+Container-side `setupScript` remains responsible only for startup work that is
+meaningful from inside the launched container.
+
 ## Configuration Boundary
 
 Application configuration:
@@ -67,6 +89,10 @@ WORKSPACE_ROOT/cfg/
 
 The application passes `WORKSPACE_ROOT` to the runtime package. It does not
 interpret `profile.json` semantically and does not select profiles.
+
+That means this repository does not need application code changes to adopt the
+host-side preparation split. The change is in host/runtime integration guidance
+and in the profile model owned by the runtime library.
 
 ## Attribute Provider Boundary
 

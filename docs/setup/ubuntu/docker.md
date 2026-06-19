@@ -34,7 +34,12 @@ The current Dockerfile:
 - uses `/workspace` as the working directory;
 - runs containers as the non-root `node` user.
 
-The image does not define a default command. The execution command is supplied by GitHub Flows launch/profile configuration.
+The image does not define a default command. The execution command is supplied
+by GitHub Flows launch/profile configuration.
+
+In the current runtime model, host-side `hostScript` prepares host-local and
+execution-scoped inputs before container launch, while `setupScript` performs
+container-local startup checks after launch.
 
 ## Build the Image
 
@@ -122,7 +127,9 @@ cat ./var/work/test-run/check.txt
 
 ## Runtime Restrictions
 
-The container should receive only the per-run workspace and the explicit credentials required by the selected launch/profile configuration.
+The container should receive only the per-run workspace and the explicit
+credentials or temporary artifacts required by the selected launch/profile
+configuration.
 
 Do not mount:
 
@@ -133,6 +140,10 @@ Do not mount:
 - the Docker socket.
 
 Do not run the agent container with privileged host access.
+
+If host-side preparation creates execution-scoped files for one run, mount only
+those specific files or directories. Do not broaden the mount to the full
+secrets directory just for convenience.
 
 ## Result
 

@@ -23,6 +23,11 @@ The application does not own the internal runtime meaning of this directory. It
 only supplies the location and may expose selected subdirectories through the
 read-only static surface.
 
+When the runtime uses host-side `hostScript`, the host may also place
+execution-scoped helper artifacts under a run-local workspace location before
+container launch. Those artifacts remain temporary runtime support data, not
+host-owned durable state.
+
 ## Recommended Layout
 
 For a local deployment, the workspace normally contains:
@@ -127,6 +132,14 @@ The workspace may be exposed through protected operational views and may contain
 per-run files. Store GitHub tokens, Codex auth state, and other long-lived
 secrets outside the workspace and mount them into agent containers only when a
 selected profile requires them.
+
+If host-side preparation materializes execution-scoped files under the
+workspace, treat them as temporary and least-privilege by default:
+
+- generate them only for the selected run;
+- expose only the minimum content required by that run;
+- avoid placing them under long-lived public or operationally indexed paths;
+- remove them during normal host-side cleanup after the run completes.
 
 Use [setup/ubuntu/auth.md](setup/ubuntu/auth.md) for the credential layout used
 by the provided Codex agent image.

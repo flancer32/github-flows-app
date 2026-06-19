@@ -32,6 +32,16 @@ The setup layer prepares:
 - public HTTPS ingress;
 - credential storage for selected agent runs.
 
+In the runtime startup model, credential and workspace preparation is split
+between:
+
+- host-side `hostScript` before container launch;
+- container-side `setupScript` after container launch.
+
+These setup guides focus on the host-owned half of that model: where long-lived
+secrets live, how temporary execution-scoped artifacts are prepared, and what
+may be mounted into a selected agent container.
+
 The runtime package still owns:
 
 - event admission;

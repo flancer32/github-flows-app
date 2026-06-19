@@ -14,6 +14,7 @@ This document covers:
 - GitHub personal access token storage;
 - GitHub CLI authentication through `GH_TOKEN`;
 - Codex authentication through persisted Codex auth state;
+- host-side preparation of execution-scoped credentials or helper files;
 - profile configuration for passing credentials into the agent container.
 
 This document does not describe Docker image creation, application deployment, Apache configuration, or GitHub webhook setup.
@@ -40,7 +41,7 @@ The Codex agent image is:
 github-flows-agent-codex:latest
 ```
 
-The GitHub token file is:
+The long-lived GitHub token file is:
 
 ```text
 /home/user/.secrets/gh-token
@@ -52,10 +53,10 @@ The Codex auth state directory is:
 /home/user/.secrets/codex/
 ```
 
-Inside the container:
+Inside the container, only selected run inputs should appear:
 
 ```text
-/run/secrets/gh-token      GitHub token file
+/run/secrets/gh-token      execution-scoped GitHub token file or bind mount
 /home/user/.codex          Codex auth state
 /workspace                 per-run workspace
 ```
@@ -125,13 +126,16 @@ chmod 600 /home/user/.secrets/gh-token
 
 The file must contain only the raw GitHub token value.
 
+This host-local secret is a source input for host-side preparation. It should
+not be copied into the runtime workspace as a durable file.
+
 Check that the runtime user can read the token:
 
 ```bash
 test -r /home/user/.secrets/gh-token && echo gh-token-ok
 ```
 
-## Verify GitHub Token in the Container
+## Verify GitHub Token In A Selected Container Run
 
 Check the GitHub identity exposed by the token:
 
@@ -153,7 +157,27 @@ docker run --rm \
   bash -lc 'export GH_TOKEN="$(tr -d "\r\n" < "$GH_TOKEN_FILE")"; export GITHUB_TOKEN="$GH_TOKEN"; gh repo view owner/repository'
 ```
 
-The `tr -d "\r\n"` command removes line endings from the token file before exporting the token.
+The `tr -d "\r\n"` command removes line endings from the token file before
+exporting the token.
+
+## Preparation Model
+
+Use this split when preparing credentials for a run:
+
+- `hostScript` keeps long-lived secrets on the host, derives any temporary
+  execution-scoped files, and decides which files are mounted into the selected
+  container;
+- `setupScript` consumes only the already-mounted run inputs from inside the
+  container.
+
+Examples of execution-scoped artifacts:
+
+- a short-lived token file derived from a host-local source secret;
+- a temporary context snapshot prepared for one run;
+- a run-local helper file needed only by the selected profile.
+
+Remove such artifacts after the run. Do not promote them into long-lived host
+storage or public inspection paths.
 
 ## Codex Authentication
 
@@ -241,11 +265,15 @@ A profile can mount both credential sources into the container:
 
 This does not automatically create `GH_TOKEN`.
 
-The profile command must read `GH_TOKEN_FILE` and export `GH_TOKEN` before starting Codex.
+The host-side preparation step is responsible for deciding what
+`GH_TOKEN_FILE` points to for the selected run. The container command must then
+read `GH_TOKEN_FILE` and export `GH_TOKEN` before starting Codex.
 
 ## Profile Example
 
-This profile launches Codex through `bash -lc`, reads the GitHub token from `/run/secrets/gh-token`, exports `GH_TOKEN` and `GITHUB_TOKEN`, and then starts Codex.
+This profile launches Codex through `bash -lc`, reads the GitHub token from a
+host-prepared `/run/secrets/gh-token`, exports `GH_TOKEN` and `GITHUB_TOKEN`,
+and then starts Codex.
 
 ```json
 {
@@ -349,7 +377,12 @@ Do not place credentials inside:
 /home/user/app/github-flows/var/work/
 ```
 
-The runtime workspace may be visible through logs or debugging tools. It must not contain long-lived credentials.
+The runtime workspace may be visible through logs or debugging tools. It must
+not contain long-lived credentials.
+
+If host-side preparation creates execution-scoped files for a selected run,
+clean them up after the run completes and keep them out of long-lived indexed
+or public paths.
 
 ## Result
 
@@ -357,10 +390,13 @@ After this setup:
 
 - the GitHub token is stored in `/home/user/.secrets/gh-token`;
 - the GitHub token file is readable only by the runtime user;
+- host-side preparation may derive temporary execution-scoped token files from
+  that host-local source when a selected run needs them;
 - the Codex auth state is stored in `/home/user/.secrets/codex/`;
 - GitHub CLI receives `GH_TOKEN` and `GITHUB_TOKEN` from the mounted token file;
 - Codex CLI uses the mounted Codex auth state from `/home/user/.codex`;
 - profile execution can authenticate to GitHub without mounting the host home directory;
 - profile execution can authenticate Codex without storing Codex credentials in the image;
 - credentials are mounted into the container only at runtime;
+- execution-scoped artifacts should be removed after the run;
 - the per-run workspace remains separated from long-lived credentials.

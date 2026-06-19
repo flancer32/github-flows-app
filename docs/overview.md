@@ -17,6 +17,16 @@ It turns the runtime library into a continuously running service by providing:
 - static read-only operational file delivery from `web/`;
 - a public deployment shape for reverse proxy and service management.
 
+In the runtime startup model used by this product, the host and container have
+separate preparation steps:
+
+- `hostScript` is the host-side pre-launch step;
+- `setupScript` is the container-side startup step after launch.
+
+This repository owns only the host-side integration guidance around that split.
+The runtime library still owns the semantics of profile selection and
+execution.
+
 The application is intentionally thin. It does not define workflow behavior,
 agent behavior, profile matching rules, event sequencing, or execution policy.
 
@@ -76,7 +86,8 @@ Use application documentation for process, deployment, workspace, and
 application-provided trigger attributes.
 
 Use `@teqfw/github-flows` documentation for profile fragments, trigger matching,
-single-event launch, and event-chain design.
+single-event launch, host-side `hostScript`, container-side `setupScript`, and
+event-chain design.
 
 ## Documentation Map
 
