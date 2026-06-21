@@ -12,6 +12,7 @@ The credentials are used by Docker-isolated agent executions.
 This document covers:
 
 - GitHub personal access token storage;
+- GitHub App authentication via `hostScript` with short-lived installation tokens;
 - GitHub CLI authentication through `GH_TOKEN`;
 - Codex authentication through persisted Codex auth state;
 - host-side preparation of execution-scoped credentials or helper files;
@@ -182,6 +183,117 @@ Examples of execution-scoped artifacts:
 
 Remove such artifacts after the run. Do not promote them into long-lived host
 storage or public inspection paths.
+
+## GitHub App Authentication via hostScript
+
+Instead of a long-lived personal access token, you can use a GitHub App to
+generate short-lived installation tokens for each agent run. The token is
+produced by `hostScript` before the container starts and written into the
+per-run workspace, making it available inside the container without any
+extra Docker mount.
+
+### Benefits
+
+- Tokens expire after 1 hour (vs. static PAT that never expires).
+- Each token is scoped to one installation — no user-bound PAT to rotate.
+- The App private key is never mounted into the container.
+- Works with parallel agent executions — each run gets its own isolated token
+  file inside its own workspace.
+
+### Create a GitHub App
+
+1. Go to **GitHub Settings → Developer settings → GitHub Apps → New GitHub App**.
+2. Give it a name, e.g. `github-flows-agent`.
+3. Disable webhook (the app is only used for token generation).
+4. Set **Permissions**:
+   - `Contents: Read and write`
+   - `Issues: Read and write`
+   - `Pull requests: Read and write`
+   - `Metadata: Read`
+5. Set **Where can this GitHub App be installed?** → `Any account`.
+6. Click **Create GitHub App**.
+7. On the app page, scroll to **Private keys** → **Generate a private key**.
+   A `.pem` file is downloaded. Keep it secure.
+
+### Install the App
+
+1. Go to the GitHub App page → **Install App** → select the target account
+   or organization.
+2. Choose **Only selected repositories** and pick the repository where agents
+   will operate.
+3. Click **Install**.
+4. Note the **Installation ID** — it appears in the URL after installation:
+   `https://github.com/settings/installations/<INSTALLATION_ID>`.
+
+### Store the Private Key
+
+```bash
+sudo -iu user
+
+mkdir -p /home/user/.secrets
+chmod 700 /home/user/.secrets
+
+# Upload the downloaded PEM file
+mv ~/github-flows-agent.2025-01-01.private-key.pem /home/user/.secrets/github-app.pem
+chmod 600 /home/user/.secrets/github-app.pem
+```
+
+### Configure the Profile
+
+Add `hostScript` and App-related env vars to the profile runtime section.
+The `hostScript` calls `bin/gh-app-token.sh` (shipped with the application)
+which generates the token. The `GH_TOKEN_FILE` is set to a relative path
+so the token lands inside the per-run workspace.
+
+```json
+{
+  "execution": {
+    "runtime": {
+      "hostScript": "/home/user/app/github-flows/bin/gh-app-token.sh",
+      "env": {
+        "LOG_LEVEL": "info",
+        "GH_TOKEN_FILE": ".gh-token",
+        "GH_APP_ID": "123456",
+        "GH_APP_INSTALLATION_ID": "789012",
+        "GH_APP_KEY_FILE": "/home/user/.secrets/github-app.pem"
+      },
+      "dockerArgs": [
+        "--mount",
+        "type=bind,src=/home/user/.secrets/codex,dst=/home/user/.codex"
+      ]
+    }
+  }
+}
+```
+
+Note: the `gh-token` Docker mount is no longer needed — the token file
+lives inside the workspace which is already mounted as `/workspace`.
+
+The `setupScript` reads the token from the workspace-relative path:
+
+```bash
+export GH_TOKEN="$(tr -d '\r\n' < "$GH_TOKEN_FILE")"
+export GITHUB_TOKEN="$GH_TOKEN"
+```
+
+### Pipeline Summary
+
+```
+GitHub Webhook Event
+  → runtime selects profile
+  → workspacePath created at <workspaceRoot>/ws/<owner>/<repo>/<event>/<id>/
+  → hostScript: bin/gh-app-token.sh
+      → reads GH_APP_KEY_FILE, GH_APP_ID, GH_APP_INSTALLATION_ID
+      → builds JWT (RS256, 10 min validity)
+      → POST /app/installations/{id}/access_tokens
+      → writes token to workspacePath/.gh-token
+  → Docker: mount workspacePath → /workspace
+  → setupScript: reads /workspace/.gh-token
+  → codex runs with short-lived GH_TOKEN
+```
+
+After the run, the workspace (including the token file) is cleaned up by
+the runtime.
 
 ## Codex Authentication
 
