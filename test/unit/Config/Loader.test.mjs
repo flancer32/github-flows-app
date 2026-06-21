@@ -148,6 +148,42 @@ test("Config loader parses quoted env values and ignores malformed lines", async
   }
 });
 
+test("Config loader resolves relative WORKSPACE_ROOT from project root", async () => {
+  const calls = [];
+  const loader = createLoader({ calls });
+  const dir = await mkdtemp(path.join(os.tmpdir(), "github-flows-app-"));
+  try {
+    await writeFile(
+      path.join(dir, ".env"),
+      [
+        "WORKSPACE_ROOT=./var/work",
+        "WEBHOOK_SECRET=secret",
+        "",
+      ].join("\n"),
+    );
+
+    assert.deepEqual(await loader.load({ projectRoot: dir }), {
+      httpHost: "127.0.0.1",
+      httpPort: 3000,
+      logRetentionDays: undefined,
+      workspaceRoot: path.resolve(dir, "./var/work"),
+      webhookSecret: "secret",
+    });
+    assert.deepEqual(calls, [
+      ["configure", {
+        httpHost: "127.0.0.1",
+        httpPort: 3000,
+        logRetentionDays: undefined,
+        workspaceRoot: path.resolve(dir, "./var/work"),
+        webhookSecret: "secret",
+      }],
+      ["freeze"],
+    ]);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("Config loader rejects invalid PORT", async () => {
   const calls = [];
   const loader = createLoader({ calls });

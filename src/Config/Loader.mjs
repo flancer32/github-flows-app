@@ -110,7 +110,8 @@ export default class Github_Flows_App_Config_Loader {
       if (env.PORT !== undefined) cfg.httpPort = parsePort(env.PORT);
       if (env.LOG_RETENTION_DAYS !== undefined) cfg.logRetentionDays = parseRetentionDays(env.LOG_RETENTION_DAYS);
       if (env.WORKSPACE_ROOT !== undefined) {
-        cfg.workspaceRoot = requireNonEmptyString("WORKSPACE_ROOT", env.WORKSPACE_ROOT);
+        const workspaceRoot = requireNonEmptyString("WORKSPACE_ROOT", env.WORKSPACE_ROOT);
+        cfg.workspaceRoot = path.isAbsolute(workspaceRoot) ? workspaceRoot : path.resolve(projectRoot, workspaceRoot);
       }
       if (env.WEBHOOK_SECRET !== undefined) {
         cfg.webhookSecret = requireNonEmptyString("WEBHOOK_SECRET", env.WEBHOOK_SECRET);
