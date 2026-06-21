@@ -21,6 +21,19 @@ set -euo pipefail
 GH_TOKEN_FILE="${GH_TOKEN_FILE:-.gh-token}"
 
 # ---------------------------------------------------------------------------
+# Diagnostic: print context
+# ---------------------------------------------------------------------------
+echo "[diag] PWD:          $(pwd)" >&2
+echo "[diag] GH_TOKEN_FILE: $GH_TOKEN_FILE" >&2
+TOKEN_ABS_DIR=$(cd "$(dirname "$GH_TOKEN_FILE")" 2>/dev/null && pwd 2>/dev/null || echo "??")
+echo "[diag] resolved dir:  $TOKEN_ABS_DIR" >&2
+echo "[diag] GH_APP_ID:    $GH_APP_ID" >&2
+echo "[diag] GH_APP_KEY_FILE: $GH_APP_KEY_FILE" >&2
+echo "[diag] GH_APP_INSTALLATION_ID: $GH_APP_INSTALLATION_ID" >&2
+ls -la "$(pwd)" >&2 2>/dev/null || echo "[diag] cannot list pwd" >&2
+echo "" >&2
+
+# ---------------------------------------------------------------------------
 # Step 1: build a JSON Web Token (JWT) signed with the App private key
 # ---------------------------------------------------------------------------
 NOW=$(date +%s)
@@ -66,4 +79,8 @@ echo "$TOKEN"
 mkdir -p "$(dirname "$GH_TOKEN_FILE")"
 echo -n "$TOKEN" > "$GH_TOKEN_FILE"
 chmod 600 "$GH_TOKEN_FILE"
-echo "Token written to $(cd "$(dirname "$GH_TOKEN_FILE")" && pwd)/$(basename "$GH_TOKEN_FILE")" >&2
+
+ABS_PATH=$(cd "$(dirname "$GH_TOKEN_FILE")" && pwd)/$(basename "$GH_TOKEN_FILE")
+echo "[diag] wrote token to: $ABS_PATH" >&2
+echo "[diag] file size: $(wc -c < "$GH_TOKEN_FILE") bytes" >&2
+echo "[diag] file exists: $([ -f "$GH_TOKEN_FILE" ] && echo YES || echo NO)" >&2
