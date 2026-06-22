@@ -1,7 +1,7 @@
 # Application Overview
 
 - Path: `docs/overview.md`
-- Version: `20260514`
+- Version: `20260622`
 
 ## Purpose
 
@@ -131,5 +131,10 @@ Use `@teqfw/github-flows` profiles to describe event-to-execution routing.
 Use runtime `hostScript` only for pre-launch preparation needed by one selected
 execution. Keep application startup and service management outside profile
 semantics.
+
+The application ships one built-in `hostScript` script: `bin/gh-app-token.sh`.
+It generates a short-lived GitHub App installation access token and writes it to
+the per-run workspace. See [setup/ubuntu/auth.md](setup/ubuntu/auth.md) for
+configuration and the complete flow.
 
 Use GitHub repository events to connect multiple automation stages.
